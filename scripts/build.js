@@ -61,11 +61,15 @@ function parseMarkdown(md) {
     if (h2) {
       if (cur) {
         if (step) {
-          step.content = flushBuf();
+          // 正文可能已在 HINTS 处 flush 过，只有还在 step-content 模式时才需要再收
+          if (mode === 'step-content') step.content = flushBuf();
+          else buf = [];
           cur.steps.push(step);
           step = null;
-        } else {
+        } else if (mode === 'level-content' || mode === 'level-summary') {
           cur.content = flushBuf();
+        } else {
+          buf = [];
         }
         levels.push(cur);
       }
@@ -78,10 +82,13 @@ function parseMarkdown(md) {
     const h3 = line.match(/^###\s+(\d+\.\d+)\s*(.*)$/);
     if (h3) {
       if (step) {
-        step.content = flushBuf();
+        if (mode === 'step-content') step.content = flushBuf();
+        else buf = [];
         cur.steps.push(step);
-      } else if (cur) {
+      } else if (cur && (mode === 'level-content' || mode === 'level-summary')) {
         cur.content = flushBuf();
+      } else {
+        buf = [];
       }
       step = {
         id: h3[1],
@@ -150,9 +157,9 @@ function parseMarkdown(md) {
   // 收尾
   if (cur) {
     if (step) {
-      step.content = flushBuf();
+      if (mode === 'step-content') step.content = flushBuf();
       cur.steps.push(step);
-    } else {
+    } else if (mode === 'level-content' || mode === 'level-summary') {
       cur.content = flushBuf();
     }
     levels.push(cur);
@@ -166,6 +173,13 @@ function main() {
   const yamlPath = path.join(ROOT, 'coderoad.yaml');
   const outPath = path.join(ROOT, 'tutorial.json');
 
+  // --local：产出可在 Windows 本地测试的版本
+  //   - testRunner.command 改成 node 直接跑 mocha.js（Windows 下 .bin/mocha 不可执行）
+  //   - repo.uri 改成本地 bare 仓库（扩展会用 git ls-remote 校验，远端仓库还不存在）
+  const isLocal = process.argv.includes('--local');
+  const localRepoUri =
+    process.env.LOCAL_REPO_URI || 'D:/code/database-lab-remote.git';
+
   if (!fs.existsSync(mdPath)) {
     console.error('❌ 找不到 TUTORIAL.md');
     process.exit(1);
@@ -177,6 +191,16 @@ function main() {
 
   const md = fs.readFileSync(mdPath, 'utf8');
   const cfg = yaml.load(fs.readFileSync(yamlPath, 'utf8'));
+
+  if (isLocal) {
+    cfg.config.testRunner.command = 'node ./node_modules/mocha/bin/mocha.js';
+    cfg.config.repo.uri = localRepoUri;
+    cfg.config.repo.branch = 'main';
+    // 本地已经有依赖了，跳过 npm install（还能避免每次保存都装一遍）
+    delete cfg.config.setup;
+    delete cfg.config.continue;
+    delete cfg.config.reset;
+  }
 
   const parsed = parseMarkdown(md);
 

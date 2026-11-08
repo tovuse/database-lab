@@ -73,3 +73,38 @@ GitHub 免费账号每月有 120 core-hours + 15GB 存储。这门课的镜像�
 | 判题一直红，但我 SQL 是对的 | 检查是否保存了文件（`Ctrl+S`），以及文件是不是在 `sql/` 目录下 |
 | 想把某一关从头再来 | 改坏的文件用 `git checkout sql/文件名` 恢复成空模板 |
 | 整个环境乱了 | 删除 codespace 重新建一个（进度会丢） |
+| 讲义显示成旧版本 | CodeRoad 把课程缓存在工作区状态里。清缓存：命令面板 → `Developer: Reload Window`；仍不行就删除该 codespace 重建 |
+
+## 七、给课程维护者：几个必须知道的坑
+
+### 1. `codeally.json` 必须放在**根目录**
+
+扩展的激活事件是 `workspaceContains:/codeally.json` —— 这是**根目录**语义。
+放在 `.freeCodeCamp/codeally.json` 不会触发激活，必须放仓库根目录。
+
+Codespaces 里靠 `CODEROAD_TUTORIAL_URL` 自动开课，这个文件是给本地调试用的。
+
+### 2. Windows 本地调试 vs Codespaces 的差异
+
+| 项 | Codespaces (Linux) | Windows 本地 |
+|---|---|---|
+| 测试命令 | `./node_modules/.bin/mocha` | `node ./node_modules/mocha/bin/mocha.js` |
+| `repo.uri` | GitHub URL | 必须能 `git ls-remote` 通过（用本地 bare 仓库） |
+| 工作区信任 | 默认信任 | 需关 `security.workspace.trust.enabled` 或信任该目录 |
+
+用 `node scripts/build.js --local` 生成本地可测版本（自动改这两项）。
+
+### 3. 改完讲义要清 CodeRoad 缓存
+
+CodeRoad 把 `tutorial.json` 存在 workspaceState（`coderoad:currentTutorial`）里。
+重新 build 后如果界面还是旧内容，是走了"继续上次课程"路径。
+解决：命令面板 `Developer: Reload Window`，或直接删 `state.vscdb` 里那个 key。
+
+### 4. `coderoad-cli` 在 Node 18+ 上跑不起来
+
+`@coderoad/cli@0.9.3` 依赖 2019 年的 `esm` 包，在 Node 24 上直接崩（exit 1）。
+本仓库用 `scripts/build.js` 替代，它做三件事：
+- 解析 `TUTORIAL.md`（`## 1.` / `### 1.1` / `#### HINTS` / `#### SUBTASKS`）
+- 校验 markdown 与 `coderoad.yaml` 的关卡/步骤 id 一一对齐
+- 警告提示不足 3 档的步骤（违反"三档提示"规范）
+
