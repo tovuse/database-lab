@@ -1,0 +1,2 @@
+-- 3.5 标准答案：借阅流水号序列
+CREATE SEQUENCE 序列_借阅 START WITH 100 INCREMENT BY 1;

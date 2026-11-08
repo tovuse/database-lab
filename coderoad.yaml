@@ -85,3 +85,50 @@ levels:
           files:
             - sql/2.5_未还图书.sql
           filter: '^2\.5 '
+  - id: '3'
+    # Level 3 用 PL/SQL 写存储过程和触发器，判题会重放基线 + 建过程 + 调用 + 断言数据变化。
+    # 部分关卡依赖前面关卡建好的对象（如 3.6 依赖 3.5 的序列），测试里用 answers/ 下的标准答案补齐。
+    setup:
+      commands:
+        - ./scripts/loadBaseline.sh
+    steps:
+      - id: '3.1'
+        setup:
+          files:
+            - sql/3.1_借书过程.sql
+          filter: '^3\.1 '
+      - id: '3.2'
+        setup:
+          files:
+            - sql/3.2_调用借书.sql
+          filter: '^3\.2 '
+      - id: '3.3'
+        setup:
+          files:
+            - sql/3.3_预约过程.sql
+          filter: '^3\.3 '
+      - id: '3.4'
+        setup:
+          files:
+            - sql/3.4_还书过程.sql
+          filter: '^3\.4 '
+      - id: '3.5'
+        setup:
+          files:
+            - sql/3.5_序列.sql
+          filter: '^3\.5 '
+      - id: '3.6'
+        setup:
+          files:
+            - sql/3.6_简化借书过程.sql
+          filter: '^3\.6 '
+      - id: '3.7'
+        setup:
+          files:
+            - sql/3.7_借阅触发器.sql
+          filter: '^3\.7 '
+      - id: '3.8'
+        setup:
+          files:
+            - sql/3.8_丢失过程.sql
+          filter: '^3\.8 '

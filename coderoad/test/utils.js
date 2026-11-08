@@ -467,6 +467,90 @@ function sortRows(rows) {
   });
 }
 
+// ---------------------------------------------------------------------
+// PL/SQL 对象断言（Level 3 存储过程与触发器用）
+// ---------------------------------------------------------------------
+
+/** 断言存在指定类型的 PL/SQL 对象（PROCEDURE / FUNCTION / TRIGGER / SEQUENCE） */
+async function assertObject(name, type) {
+  const upper = name.toUpperCase();
+  const sql = type === 'SEQUENCE'
+    ? `SELECT COUNT(*) FROM user_sequences WHERE sequence_name = :1`
+    : `SELECT COUNT(*) FROM user_objects WHERE object_name = :1 AND object_type = :2`;
+  const binds = type === 'SEQUENCE' ? [upper] : [upper, type];
+  const n = await scalar(sql, binds);
+  if (!n) {
+    const zh = { PROCEDURE: '存储过程', TRIGGER: '触发器', SEQUENCE: '序列', FUNCTION: '函数' }[type] || type;
+    throw new Error(
+      `没找到${zh}「${name}」 → 检查：名字是否拼错、CREATE 有没有报错（PL/SQL 块要用单独一行的 / 结束）`
+    );
+  }
+}
+
+/** 断言 PL/SQL 对象编译无错误 */
+async function assertCompiled(name) {
+  const n = await scalar(
+    `SELECT COUNT(*) FROM user_errors WHERE name = :1`,
+    [name.toUpperCase()]
+  );
+  if (n > 0) {
+    const rows = await query(
+      `SELECT line, position, text FROM user_errors WHERE name = :1 ORDER BY sequence`,
+      [name.toUpperCase()]
+    );
+    const detail = rows
+      .slice(0, 3)
+      .map((r) => `第 ${r[0]} 行第 ${r[1]} 列：${String(r[2]).trim()}`)
+      .join('\n       ');
+    throw new Error(
+      `「${name}」编译有错误：\n       ${detail}\n  → 检查：上面提示的那一行，常见是漏了分号、END 后面忘了 /`
+    );
+  }
+}
+
+/**
+ * 在 TESTER schema 里直接调用一个存储过程。
+ * 失败时把 Oracle 的错误信息原样带出来（学生写的过程报错要能看到）。
+ */
+async function callProcedure(callSql) {
+  try {
+    await exec(callSql);
+  } catch (e) {
+    const msg = (e.message || '').split('\n')[0];
+    throw new Error(
+      `调用失败：${msg} → 检查：参数个数和类型对不对、过程里的 SQL 能不能跑通`
+    );
+  }
+}
+
+/**
+ * 断言某条语句必须报错，且错误信息包含指定文字。
+ * 用于验证「预约时有可借图书必须拒绝」这类业务规则。
+ */
+async function expectCallError(sql, keyword, hint) {
+  const c = await conn();
+  let threw = false;
+  let msg = '';
+  try {
+    await c.execute(sql, {}, { autoCommit: false });
+  } catch (e) {
+    threw = true;
+    msg = e.message || String(e);
+  } finally {
+    await c.rollback().catch(() => {});
+  }
+  if (!threw) {
+    throw new Error(`本该被拒绝，却执行成功了 → 检查：${hint}`);
+  }
+  if (keyword && !msg.includes(keyword)) {
+    throw new Error(
+      `报错了但提示语不对：期望包含「${keyword}」，实际「${
+        msg.split('\n')[0]
+      }」 → 检查：${hint}`
+    );
+  }
+}
+
 module.exports = {
   WORKSPACE,
   DB,
@@ -490,4 +574,8 @@ module.exports = {
   runQuery,
   runQueryFile,
   assertQueryEquals,
+  assertObject,
+  assertCompiled,
+  callProcedure,
+  expectCallError,
 };
