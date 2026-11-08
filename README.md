@@ -7,12 +7,31 @@
 点下面的链接，浏览器里会直接打开一个 VS Code：
 
 ```
-https://codespaces.new/yourorg/database-lab
+https://codespaces.new/tovuse/database-lab
 ```
 
 - 第一次打开需要等 **3–5 分钟**（要启动 Oracle 数据库）
 - 等右侧出现 CodeRoad 面板、显示第 1 关，就可以开始了
-- 如果右侧没自动打开：`Ctrl+Shift+P` → 输入 `CodeRoad: Start`
+
+### 打开后如果不对，按这三步排查
+
+**① 弹出「是否信任此文件夹中的文件的作者？」→ 点「信任文件夹并继续」**
+
+不点信任，VS Code 处于受限模式，扩展不会加载，CodeRoad 面板永远出不来。
+
+**② 右侧没有 CodeRoad 面板 → 按 `F1`，输入 `Reload Window`，回车**
+
+扩展装好了但没激活是常见情况，重载一次窗口就出来了。
+
+**③ 点了 Run 显示 `Test Runner Failed` → 说明环境初始化没跑完**
+
+在终端里执行一次自检，能看到缺什么：
+
+```bash
+cd /workspaces/database-lab && bash scripts/selfCheck.sh
+```
+
+如果提示缺 Node.js 或 mocha 不可执行，按文档 §六 的说明处理，或直接把输出发给老师。
 
 ## 二、怎么用
 
@@ -68,14 +87,43 @@ GitHub 免费账号每月有 120 core-hours + 15GB 存储。这门课的镜像�
 
 | 现象 | 处理 |
 |---|---|
-| 右侧一直没有 CodeRoad 面板 | `Ctrl+Shift+P` → `CodeRoad: Start` |
+| 弹出「是否信任此文件夹」 | 点「信任文件夹并继续」，否则扩展不会加载 |
+| 右侧一直没有 CodeRoad 面板 | `F1` → `Reload Window`；仍不行再试 `CodeRoad: Start` |
+| 点 Run 显示 `Test Runner Failed` | 环境初始化没跑完，跑 `bash scripts/selfCheck.sh` 看缺什么 |
 | 终端里 sqlplus 连不上 | 数据库还在启动，等 2 分钟；或 `bash scripts/waitForDb.sh` |
+| 进入 Level 2 后报表不存在 | 基线没装载，执行 `bash scripts/loadBaseline.sh` |
 | 判题一直红，但我 SQL 是对的 | 检查是否保存了文件（`Ctrl+S`），以及文件是不是在 `sql/` 目录下 |
 | 想把某一关从头再来 | 改坏的文件用 `git checkout sql/文件名` 恢复成空模板 |
 | 整个环境乱了 | 删除 codespace 重新建一个（进度会丢） |
 | 讲义显示成旧版本 | CodeRoad 把课程缓存在工作区状态里。清缓存：命令面板 → `Developer: Reload Window`；仍不行就删除该 codespace 重建 |
 
 ## 七、给课程维护者：几个必须知道的坑
+
+### 0. 三个 P0（不修，学生第 1 关就会卡死）
+
+实测于 2026-11-08 的 Codespaces 环境，详见 `CodeRoad课程云端实操测试报告.docx`。
+
+**P0-1 镜像里没有 Node.js。** `gvenzl/oracle-free:23-slim` 是纯 Oracle 镜像，
+不含 Node，`postCreate.sh` 里的 `npm install` 必然失败，判题器起不来。
+必须在 `devcontainer.json` 里加 feature：
+
+```jsonc
+"features": {
+  "ghcr.io/devcontainers/features/node:1": { "version": "20" }
+}
+```
+
+**P0-2 `coderoad/node_modules` 不能入库。** 里面 734 个文件是从 Windows 提交的，
+`.bin/mocha` 权限是 644，Linux 下执行报 `Permission denied`。应从版本库移除，
+交给 `postCreate` 现场 `npm install`。
+
+**P0-3 `postCreate.sh` 的 `set -e` 会掩盖失败。** 第 3 步 npm install 一失败脚本就退出，
+第 4 步「清理课程脚手架」永远不执行，工作区里留着 `TUTORIAL.md` / `coderoad.yaml`。
+应逐步判断返回值，对非关键步骤不要一刀切。
+
+**P1 Level 2 的 setup 未必触发。** 通过 Continue 弹窗进入下一关时，`coderoad.yaml`
+里配置的 level `setup` 命令不会执行，基线表为空，5 道查询题全部无法作答。
+不要依赖它，改由 `postCreate` 装载基线。
 
 ### 1. `codeally.json` 必须放在**根目录**
 
