@@ -1,4 +1,4 @@
-id: 'yourorg/database-lab:v1.0.0'
+id: 'tovuse/database-lab:v1.0.0'
 version: '1.0.0'
 
 config:
@@ -12,7 +12,7 @@ config:
   repo:
     # 本课程不用 git 提交链判题（判题靠重放学生自己的 .sql），
     # branch 指向 main 只是为了让扩展能连上仓库通过校验
-    uri: https://github.com/yourorg/database-lab
+    uri: https://github.com/tovuse/database-lab
     branch: main
   setup:
     commands:

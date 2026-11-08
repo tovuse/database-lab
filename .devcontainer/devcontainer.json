@@ -15,7 +15,7 @@
     "ORACLE_PASSWORD": "oracle",
     "APP_USER": "COURSE",
     "APP_USER_PASSWORD": "course",
-    "CODEROAD_TUTORIAL_URL": "https://raw.githubusercontent.com/yourorg/database-lab/main/tutorial.json",
+    "CODEROAD_TUTORIAL_URL": "https://raw.githubusercontent.com/tovuse/database-lab/main/tutorial.json",
     "NLS_LANG": "AMERICAN_AMERICA.AL32UTF8"
   },
 
