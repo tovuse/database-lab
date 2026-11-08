@@ -1,0 +1,206 @@
+{
+  "id": "tovuse/database-lab:v1.0.0",
+  "version": "1.0.0",
+  "summary": {
+    "title": "数据库原理及应用 · 实验课",
+    "description": "在浏览器里操作 Oracle 数据库，写完 SQL 保存就自动判题。"
+  },
+  "config": {
+    "testRunner": {
+      "command": "./node_modules/.bin/mocha",
+      "args": {
+        "filter": "--grep",
+        "tap": "--reporter=mocha-tap-reporter"
+      },
+      "directory": "coderoad"
+    },
+    "repo": {
+      "uri": "https://github.com/tovuse/database-lab",
+      "branch": "main"
+    },
+    "setup": {
+      "commands": [
+        "cd coderoad && npm install"
+      ]
+    },
+    "continue": {
+      "commands": [
+        "cd coderoad && npm install"
+      ]
+    },
+    "reset": {
+      "commands": [
+        "cd coderoad && npm install"
+      ]
+    },
+    "dependencies": [
+      {
+        "name": "node",
+        "version": ">=18"
+      }
+    ],
+    "appVersions": {
+      "vscode": ">=0.7.0"
+    }
+  },
+  "levels": [
+    {
+      "id": "1",
+      "title": "准备环境与第一张表",
+      "summary": "先确认能连上数据库、建出自己的用户，然后把第一张表建起来。",
+      "content": "",
+      "steps": [
+        {
+          "id": "1.1",
+          "content": "数据库里的每一件事都以「你是谁」为前提。Oracle 用 `USER` 这个伪列告诉你当前登录的用户名。\n\n先在终端里连上课程库：\n\n```bash\nsqlplus -S COURSE/course@//localhost:1521/FREEPDB1\n```\n\n然后在 `sql/1.1_环境自检.sql` 里写出查询语句，保存即可判题。\n\n`dual` 是 Oracle 内置的单行单列表，专门用来测试表达式。",
+          "setup": {
+            "files": [
+              "sql/1.1_环境自检.sql"
+            ],
+            "filter": "^1\\.1 "
+          },
+          "hints": [
+            "用 `SELECT` 语句，从 `dual` 表里查 `USER`",
+            "语法是 `SELECT 列名 FROM 表名;`，这里的「列名」就是 `USER`，「表名」就是 `dual`",
+            "完整写法：`SELECT USER FROM dual;`"
+          ]
+        },
+        {
+          "id": "1.2",
+          "content": "真实项目里不会所有人都用 `SYSTEM` 干活。每个应用有自己的 schema 用户，权限被限制在自己的一亩三分地。\n\n在 `sql/1.2_建用户.sql` 里：\n\n1. 用 `CREATE USER` 建一个用户，用户名是 `S` + 你的 8 位学号\n2. 用 `GRANT` 给它 `CONNECT` 和 `RESOURCE` 两个角色",
+          "setup": {
+            "files": [
+              "sql/1.2_建用户.sql"
+            ],
+            "filter": "^1\\.2 "
+          },
+          "hints": [
+            "建用户用 `CREATE USER 用户名 IDENTIFIED BY 密码;`",
+            "授权用 `GRANT 角色名 TO 用户名;`，两个角色可以写在一句里用逗号分开",
+            "完整写法（把 S20231234 换成你自己的学号）： ```sql CREATE USER S20231234 IDENTIFIED BY \"Course#2024\"; GRANT CONNECT, RESOURCE TO S20231234; ```"
+          ]
+        },
+        {
+          "id": "1.3",
+          "content": "建表是 DDL（数据定义语言）。`CREATE TABLE` 一次定义一个关系：列名、类型、是否允许为空。\n\nOracle 常用类型：\n\n| 类型 | 用途 |\n|---|---|\n| `CHAR(n)` | 定长字符串，不够会用空格补齐 |\n| `VARCHAR2(n)` | 变长字符串 |\n| `NUMBER(p,s)` | 数字，p 位有效数字，s 位小数 |\n| `DATE` | 日期时间 |\n\n图书分类只有两个属性。在 `sql/1.3_图书分类.sql` 里建这张表：\n\n- `图书分类号` — `CHAR(3)`，不能为空\n- `类名` — `VARCHAR2(30)`，不能为空\n\n> ⚠️ 本库字符集是 `AL32UTF8`，一个汉字占 **3 字节**。`CHAR(1)` 存不下一个汉字，\n> 会报 `ORA-01401`。所以后面存「是/否」要用 `CHAR(3)` 或 `VARCHAR2(3)`。",
+          "setup": {
+            "files": [
+              "sql/1.3_图书分类.sql"
+            ],
+            "filter": "^1\\.3 ",
+            "subtasks": true
+          },
+          "hints": [
+            "用 `CREATE TABLE 表名 ( 列名 类型 NOT NULL, 列名 类型 NOT NULL );`",
+            "括号里逗号分隔，最后一行不要逗号；整条语句以分号结束",
+            "完整写法： ```sql CREATE TABLE 图书分类 ( 图书分类号 CHAR(3)      NOT NULL, 类名       VARCHAR2(30) NOT NULL ); ```"
+          ]
+        },
+        {
+          "id": "1.4",
+          "content": "主键（`PRIMARY KEY`）保证这一列的值唯一且不能为空。分类号天然唯一，所以它做主键。\n\n在 `sql/1.4_图书分类主键.sql` 里，用 `ALTER TABLE` 给已建好的表追加主键约束。",
+          "setup": {
+            "files": [
+              "sql/1.4_图书分类主键.sql"
+            ],
+            "filter": "^1\\.4 ",
+            "subtasks": true
+          },
+          "hints": [
+            "用 `ALTER TABLE 表名 ADD CONSTRAINT 约束名 PRIMARY KEY (列名);`",
+            "约束名自己起，建议 `pk_图书分类` 这种一眼能看懂的名字；括号里是**列名**不是类型",
+            "完整写法： ```sql ALTER TABLE 图书分类 ADD CONSTRAINT pk_图书分类 PRIMARY KEY (图书分类号); ```"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "2",
+      "title": "数据查询",
+      "summary": "考试里 15 道查询题，我们一题一关。判题只看**结果集**，不看你怎么写——",
+      "content": "> `JOIN`、子查询、`IN` 还是 `EXISTS`，只要结果对就算过。\n\n从这一关开始，「答案」是一个 `SELECT` 语句。判题会把你写的 SQL 跑一遍，\n再和标准答案的结果集逐行比对。\n\n> 💡 结果集的**列顺序**要和题目要求一致；**行顺序**只有题目说「按 X 排序」时才校验。",
+      "setup": {
+        "commands": [
+          "./scripts/loadBaseline.sh"
+        ]
+      },
+      "steps": [
+        {
+          "id": "2.1",
+          "content": "要同时满足两个条件：书名是「红楼梦」，且这本书没有借出去。\n\n需要显示的列（按这个顺序）：`图书编号`、`ISBN`、`书名`、`作者`、`出版单位`、`单价`。\n最后按 `图书编号` 排序。\n\n「图书」表里有 `图书编号` 和 `是否借出`，「书目」表里有书名和价格，\n所以要把两张表连起来——连接条件是 `图书.ISBN = 书目.ISBN`。",
+          "setup": {
+            "files": [
+              "sql/2.1_可借红楼梦.sql"
+            ],
+            "filter": "^2\\.1 "
+          },
+          "hints": [
+            "用 `JOIN`（或 `,` 隐式连接）把 `图书` 和 `书目` 连起来，连接条件是两边的 `ISBN` 相等",
+            "骨架：`SELECT 列... FROM 图书 t JOIN 书目 b ON t.ISBN = b.ISBN WHERE 条件1 AND 条件2 ORDER BY t.图书编号`",
+            "完整写法： ```sql SELECT t.图书编号, b.ISBN, b.书名, b.作者, b.出版单位, b.单价 FROM 图书 t JOIN 书目 b ON t.ISBN = b.ISBN WHERE b.书名 = '红楼梦' AND t.是否借出 = '否' ORDER BY t.图书编号; ```"
+          ]
+        },
+        {
+          "id": "2.2",
+          "content": "单表题。从 `书目` 里筛出 `出版单位 = '高等教育出版社'` 的行，按 `单价` 从高到低排。\n\n需要显示的列：`ISBN`、`书名`、`作者`、`出版单位`、`单价`。",
+          "setup": {
+            "files": [
+              "sql/2.2_出版社书目.sql"
+            ],
+            "filter": "^2\\.2 "
+          },
+          "hints": [
+            "只要一张表 `书目`，用 `WHERE 出版单位 = '高等教育出版社'`",
+            "`ORDER BY 单价 DESC`，`DESC` 是降序（不写默认是 `ASC` 升序）",
+            "完整写法： ```sql SELECT ISBN, 书名, 作者, 出版单位, 单价 FROM 书目 WHERE 出版单位 = '高等教育出版社' ORDER BY 单价 DESC; ```"
+          ]
+        },
+        {
+          "id": "2.3",
+          "content": "分组统计题。按 `出版单位` 分组，每组算 `MAX(单价)` 和 `AVG(单价)`。\n\n需要显示的列：`出版单位`、`最高单价`、`平均单价`。\n平均单价保留 2 位小数，最后按平均单价降序。\n\n> ⚠️ 用了聚合函数又选了普通列，就必须 `GROUP BY` 那个普通列。\n> 这里 `出版单位` 是普通列，所以 `GROUP BY 出版单位`。",
+          "setup": {
+            "files": [
+              "sql/2.3_出版社价格.sql"
+            ],
+            "filter": "^2\\.3 "
+          },
+          "hints": [
+            "聚合函数：`MAX(单价)`、`AVG(单价)`；保留小数用 `ROUND(值, 2)`",
+            "骨架：`SELECT 出版单位, MAX(单价), ROUND(AVG(单价),2) FROM 书目 GROUP BY 出版单位 ORDER BY ...`",
+            "完整写法： ```sql SELECT 出版单位, MAX(单价)           AS 最高单价, ROUND(AVG(单价), 2) AS 平均单价 FROM 书目 GROUP BY 出版单位 ORDER BY 平均单价 DESC; ```"
+          ]
+        },
+        {
+          "id": "2.4",
+          "content": "只要一个数字：`读者` 表里，那些借书证号**从没出现在** `借阅` 表里的人有多少。\n\n这题只返回一行一列（人数）。写法不唯一——`NOT EXISTS`、`NOT IN`、`LEFT JOIN ... IS NULL` 都对。",
+          "setup": {
+            "files": [
+              "sql/2.4_从未借书.sql"
+            ],
+            "filter": "^2\\.4 "
+          },
+          "hints": [
+            "用 `COUNT(*)` 数行，条件是「这个借书证号在借阅表里不存在」",
+            "骨架：`SELECT COUNT(*) FROM 读者 r WHERE NOT EXISTS (SELECT 1 FROM 借阅 l WHERE l.借书证号 = r.借书证号)`",
+            "完整写法（也接受 `NOT IN` 的等价写法）： ```sql SELECT COUNT(*) FROM 读者 r WHERE NOT EXISTS (SELECT 1 FROM 借阅 l WHERE l.借书证号 = r.借书证号); ```"
+          ]
+        },
+        {
+          "id": "2.5",
+          "content": "四个表要连成一串：`借阅` → `读者`（拿姓名）、`借阅` → `图书`（拿图书编号）→ `书目`（拿书名）。\n\n条件：`归还日期 IS NULL`（还没还）。\n\n需要显示的列：`借书证号`、`姓名`、`图书编号`、`书名`、`借书日期`，\n日期用 `TO_CHAR(借书日期, 'yyyy/mm/dd')` 格式化，最后按 `借书证号` 排序。\n\n> ⚠️ `NULL` 不能用 `= NULL` 判断，必须用 `IS NULL`。这是 SQL 三值逻辑的经典坑。",
+          "setup": {
+            "files": [
+              "sql/2.5_未还图书.sql"
+            ],
+            "filter": "^2\\.5 "
+          },
+          "hints": [
+            "用 `IS NULL` 不是 `= NULL`；日期格式化用 `TO_CHAR(列, 'yyyy/mm/dd')`",
+            "骨架：`FROM 借阅 l JOIN 读者 r ON l.借书证号=r.借书证号 JOIN 图书 t ON l.图书编号=t.图书编号 JOIN 书目 b ON t.ISBN=b.ISBN WHERE l.归还日期 IS NULL`",
+            "完整写法： ```sql SELECT r.借书证号, r.姓名, t.图书编号, b.书名, TO_CHAR(l.借书日期, 'yyyy/mm/dd') AS 借书日期 FROM 借阅 l JOIN 读者 r ON l.借书证号 = r.借书证号 JOIN 图书 t ON l.图书编号 = t.图书编号 JOIN 书目 b ON t.ISBN = b.ISBN WHERE l.归还日期 IS NULL ORDER BY r.借书证号; ```"
+          ]
+        }
+      ]
+    }
+  ]
+}
