@@ -36,7 +36,13 @@
         "workbench.startupEditor": "none",
         "terminal.integrated.defaultLocation": "view",
         "files.encoding": "utf8",
-        "files.eol": "\n"
+        "files.eol": "\n",
+
+        "//trust": "关掉工作区信任弹窗，学生打开即可用，不用点「信任文件夹并继续」",
+        "security.workspace.trust.enabled": false,
+
+        "//coderoad": "CodeRoad 面板一打开就展开，配合下面的自动启动命令",
+        "coderoad.runTestsOnSave": true
       }
     }
   },
