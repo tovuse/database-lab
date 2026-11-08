@@ -1,0 +1,2 @@
+SELECT COUNT(*) FROM 读者 r
+ WHERE NOT EXISTS (SELECT 1 FROM 借阅 l WHERE l.借书证号 = r.借书证号);

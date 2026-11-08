@@ -54,3 +54,36 @@ levels:
             - sql/1.4_图书分类主键.sql
           filter: '^1\.4 '
           subtasks: true
+  - id: '2'
+    # Level 2 的查询题要用全部 7 张表 + 原始数据。
+    # 学生 Level 1 只建了一张表，所以进入本关时自动装载基线。
+    # loadBaseline.sh 是幂等的：重复执行会先清空再重建，不会报"表已存在"。
+    setup:
+      commands:
+        - ./scripts/loadBaseline.sh
+    steps:
+      - id: '2.1'
+        setup:
+          files:
+            - sql/2.1_可借红楼梦.sql
+          filter: '^2\.1 '
+      - id: '2.2'
+        setup:
+          files:
+            - sql/2.2_出版社书目.sql
+          filter: '^2\.2 '
+      - id: '2.3'
+        setup:
+          files:
+            - sql/2.3_出版社价格.sql
+          filter: '^2\.3 '
+      - id: '2.4'
+        setup:
+          files:
+            - sql/2.4_从未借书.sql
+          filter: '^2\.4 '
+      - id: '2.5'
+        setup:
+          files:
+            - sql/2.5_未还图书.sql
+          filter: '^2\.5 '

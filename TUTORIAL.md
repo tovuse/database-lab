@@ -93,3 +93,121 @@ Oracle 常用类型：
   ALTER TABLE 图书分类
     ADD CONSTRAINT pk_图书分类 PRIMARY KEY (图书分类号);
   ```
+
+## 2. 数据查询
+
+> 考试里 15 道查询题，我们一题一关。判题只看**结果集**，不看你怎么写——
+> `JOIN`、子查询、`IN` 还是 `EXISTS`，只要结果对就算过。
+
+从这一关开始，「答案」是一个 `SELECT` 语句。判题会把你写的 SQL 跑一遍，
+再和标准答案的结果集逐行比对。
+
+> 💡 结果集的**列顺序**要和题目要求一致；**行顺序**只有题目说「按 X 排序」时才校验。
+
+### 2.1 查询「红楼梦」当前可借的图书
+
+要同时满足两个条件：书名是「红楼梦」，且这本书没有借出去。
+
+需要显示的列（按这个顺序）：`图书编号`、`ISBN`、`书名`、`作者`、`出版单位`、`单价`。
+最后按 `图书编号` 排序。
+
+「图书」表里有 `图书编号` 和 `是否借出`，「书目」表里有书名和价格，
+所以要把两张表连起来——连接条件是 `图书.ISBN = 书目.ISBN`。
+
+#### HINTS
+
+- 用 `JOIN`（或 `,` 隐式连接）把 `图书` 和 `书目` 连起来，连接条件是两边的 `ISBN` 相等
+- 骨架：`SELECT 列... FROM 图书 t JOIN 书目 b ON t.ISBN = b.ISBN WHERE 条件1 AND 条件2 ORDER BY t.图书编号`
+- 完整写法：
+  ```sql
+  SELECT t.图书编号, b.ISBN, b.书名, b.作者, b.出版单位, b.单价
+    FROM 图书 t JOIN 书目 b ON t.ISBN = b.ISBN
+   WHERE b.书名 = '红楼梦' AND t.是否借出 = '否'
+   ORDER BY t.图书编号;
+  ```
+
+### 2.2 高等教育出版社的书目，按单价降序
+
+单表题。从 `书目` 里筛出 `出版单位 = '高等教育出版社'` 的行，按 `单价` 从高到低排。
+
+需要显示的列：`ISBN`、`书名`、`作者`、`出版单位`、`单价`。
+
+#### HINTS
+
+- 只要一张表 `书目`，用 `WHERE 出版单位 = '高等教育出版社'`
+- `ORDER BY 单价 DESC`，`DESC` 是降序（不写默认是 `ASC` 升序）
+- 完整写法：
+  ```sql
+  SELECT ISBN, 书名, 作者, 出版单位, 单价
+    FROM 书目
+   WHERE 出版单位 = '高等教育出版社'
+   ORDER BY 单价 DESC;
+  ```
+
+### 2.3 各出版社的最高单价、平均单价
+
+分组统计题。按 `出版单位` 分组，每组算 `MAX(单价)` 和 `AVG(单价)`。
+
+需要显示的列：`出版单位`、`最高单价`、`平均单价`。
+平均单价保留 2 位小数，最后按平均单价降序。
+
+> ⚠️ 用了聚合函数又选了普通列，就必须 `GROUP BY` 那个普通列。
+> 这里 `出版单位` 是普通列，所以 `GROUP BY 出版单位`。
+
+#### HINTS
+
+- 聚合函数：`MAX(单价)`、`AVG(单价)`；保留小数用 `ROUND(值, 2)`
+- 骨架：`SELECT 出版单位, MAX(单价), ROUND(AVG(单价),2) FROM 书目 GROUP BY 出版单位 ORDER BY ...`
+- 完整写法：
+  ```sql
+  SELECT 出版单位,
+         MAX(单价)           AS 最高单价,
+         ROUND(AVG(单价), 2) AS 平均单价
+    FROM 书目
+   GROUP BY 出版单位
+   ORDER BY 平均单价 DESC;
+  ```
+
+### 2.4 统计从未借过书的读者人数
+
+只要一个数字：`读者` 表里，那些借书证号**从没出现在** `借阅` 表里的人有多少。
+
+这题只返回一行一列（人数）。写法不唯一——`NOT EXISTS`、`NOT IN`、`LEFT JOIN ... IS NULL` 都对。
+
+#### HINTS
+
+- 用 `COUNT(*)` 数行，条件是「这个借书证号在借阅表里不存在」
+- 骨架：`SELECT COUNT(*) FROM 读者 r WHERE NOT EXISTS (SELECT 1 FROM 借阅 l WHERE l.借书证号 = r.借书证号)`
+- 完整写法（也接受 `NOT IN` 的等价写法）：
+  ```sql
+  SELECT COUNT(*)
+    FROM 读者 r
+   WHERE NOT EXISTS (SELECT 1 FROM 借阅 l WHERE l.借书证号 = r.借书证号);
+  ```
+
+### 2.5 借阅未还的读者和图书
+
+四个表要连成一串：`借阅` → `读者`（拿姓名）、`借阅` → `图书`（拿图书编号）→ `书目`（拿书名）。
+
+条件：`归还日期 IS NULL`（还没还）。
+
+需要显示的列：`借书证号`、`姓名`、`图书编号`、`书名`、`借书日期`，
+日期用 `TO_CHAR(借书日期, 'yyyy/mm/dd')` 格式化，最后按 `借书证号` 排序。
+
+> ⚠️ `NULL` 不能用 `= NULL` 判断，必须用 `IS NULL`。这是 SQL 三值逻辑的经典坑。
+
+#### HINTS
+
+- 用 `IS NULL` 不是 `= NULL`；日期格式化用 `TO_CHAR(列, 'yyyy/mm/dd')`
+- 骨架：`FROM 借阅 l JOIN 读者 r ON l.借书证号=r.借书证号 JOIN 图书 t ON l.图书编号=t.图书编号 JOIN 书目 b ON t.ISBN=b.ISBN WHERE l.归还日期 IS NULL`
+- 完整写法：
+  ```sql
+  SELECT r.借书证号, r.姓名, t.图书编号, b.书名,
+         TO_CHAR(l.借书日期, 'yyyy/mm/dd') AS 借书日期
+    FROM 借阅 l
+    JOIN 读者 r ON l.借书证号 = r.借书证号
+    JOIN 图书 t ON l.图书编号 = t.图书编号
+    JOIN 书目 b ON t.ISBN = b.ISBN
+   WHERE l.归还日期 IS NULL
+   ORDER BY r.借书证号;
+  ```

@@ -335,6 +335,134 @@ function sameRowsOrdered(a, b) {
   return JSON.stringify(norm(a)) === JSON.stringify(norm(b));
 }
 
+// ---------------------------------------------------------------------
+// 查询题判题：执行学生写的 SELECT，与标准答案结果集比对
+// ---------------------------------------------------------------------
+
+/** 去掉 SQL 注释（行注释 + 块注释），保留字符串字面量里的 -- */
+function stripComments(text) {
+  const lines = text.split(/\r?\n/);
+  const out = [];
+  let inBlock = false;
+  for (const raw of lines) {
+    let line = raw;
+    if (inBlock) {
+      const end = line.indexOf('*/');
+      if (end === -1) continue;
+      line = line.slice(end + 2);
+      inBlock = false;
+    }
+    const bc = line.indexOf('/*');
+    if (bc !== -1 && line.indexOf('*/', bc) === -1) {
+      inBlock = true;
+      line = line.slice(0, bc);
+    }
+    const trimmed = line.trim();
+    if (trimmed.startsWith('--')) continue;
+    out.push(line);
+  }
+  return out.join('\n').trim();
+}
+
+/**
+ * 执行一段查询，返回二维数组。
+ * 允许分号结尾；只执行（返回结果集的）最后一条语句。
+ */
+async function runQuery(sql) {
+  const text = stripComments(sql).replace(/;\s*$/, '').trim();
+  if (!text) {
+    throw new Error(
+      '文件里没有 SQL 语句 → 检查：是不是只写了注释、是不是忘了保存'
+    );
+  }
+  const c = await conn();
+  let r;
+  try {
+    r = await c.execute(text, {}, {
+      outFormat: oracledb.OUT_FORMAT_ARRAY,
+      fetchArraySize: 5000,
+    });
+  } catch (e) {
+    const msg = (e.message || '').split('\n')[0];
+    throw new Error(`你的 SQL 报错了：${msg} → 检查：语法、表名/列名拼写`);
+  }
+  if (!r.rows) {
+    throw new Error(
+      '语句没有返回结果集 → 检查：这是一道查询题，需要用 SELECT 语句'
+    );
+  }
+  return r.rows.map((row) =>
+    row.map((v) => {
+      if (v === null || v === undefined) return null;
+      if (typeof v === 'number') return roundIfFloat(v);
+      if (v instanceof Date) return v.toISOString().slice(0, 10);
+      return String(v).trim();
+    })
+  );
+}
+
+/** 浮点统一保留 2 位，避免 33.8 vs 33.80 这种表示差异 */
+function roundIfFloat(n) {
+  return Number.isInteger(n) ? n : Math.round(n * 100) / 100;
+}
+
+/** 读学生文件并执行其中的查询 */
+async function runQueryFile(relPath) {
+  const file = path.join(WORKSPACE, relPath);
+  if (!fs.existsSync(file)) {
+    throw new Error(`没找到文件 ${relPath} → 检查：文件名是否拼错、是否保存过`);
+  }
+  return runQuery(fs.readFileSync(file, 'utf8'));
+}
+
+/** 结果集差异的简短说明，用于失败提示 */
+function describeDiff(actual, expected) {
+  const a = actual.length;
+  const e = expected.length;
+  if (a !== e) {
+    return `行数不对：期望 ${e} 行，你的查询返回 ${a} 行`;
+  }
+  for (let i = 0; i < Math.min(a, e); i++) {
+    const ar = actual[i].map((v) => String(v)).join(' | ');
+    const er = expected[i].map((v) => String(v)).join(' | ');
+    if (ar !== er) {
+      return `第 ${i + 1} 行不一致\n       你的：${ar}\n       期望：${er}`;
+    }
+  }
+  return '行数相同但内容不同（可能是排序问题，或重复行的数量不同）';
+}
+
+/**
+ * 断言学生的查询与标准答案结果集一致。
+ * @param {string} relPath  学生答题文件
+ * @param {string} refSql   标准答案 SQL
+ * @param {{ordered?: boolean, hint?: string}} opts
+ */
+async function assertQueryEquals(relPath, refSql, opts = {}) {
+  const actual = await runQueryFile(relPath);
+  const expected = await runQuery(refSql);
+  const equal = opts.ordered
+    ? sameRowsOrdered(actual, expected)
+    : sameRows(actual, expected);
+  if (!equal) {
+    throw new Error(
+      `结果集不匹配 → ${describeDiff(
+        opts.ordered ? actual : sortRows(actual),
+        opts.ordered ? expected : sortRows(expected)
+      )}${opts.hint ? `\n  → 检查：${opts.hint}` : ''}`
+    );
+  }
+}
+
+/** 排序辅助（用于无序比对时的差异展示） */
+function sortRows(rows) {
+  return [...rows].sort((x, y) => {
+    const a = x.map((v) => String(v)).join('|');
+    const b = y.map((v) => String(v)).join('|');
+    return a < b ? -1 : a > b ? 1 : 0;
+  });
+}
+
 module.exports = {
   WORKSPACE,
   DB,
@@ -354,4 +482,8 @@ module.exports = {
   expectError,
   sameRows,
   sameRowsOrdered,
+  stripComments,
+  runQuery,
+  runQueryFile,
+  assertQueryEquals,
 };
