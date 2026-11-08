@@ -87,8 +87,7 @@
             "files": [
               "sql/1.3_图书分类.sql"
             ],
-            "filter": "^1\\.3 ",
-            "subtasks": true
+            "filter": "^1\\.3 "
           },
           "hints": [
             "用 `CREATE TABLE 表名 ( 列名 类型 NOT NULL, 列名 类型 NOT NULL );`",
@@ -103,8 +102,7 @@
             "files": [
               "sql/1.4_图书分类主键.sql"
             ],
-            "filter": "^1\\.4 ",
-            "subtasks": true
+            "filter": "^1\\.4 "
           },
           "hints": [
             "用 `ALTER TABLE 表名 ADD CONSTRAINT 约束名 PRIMARY KEY (列名);`",

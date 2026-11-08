@@ -5,6 +5,13 @@
   "//": "不要覆盖镜像 CMD，否则 Oracle 不会启动",
   "overrideCommand": false,
 
+  "//node": "这个 Oracle 镜像不含 Node.js，判题器必须靠 feature 装进来",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
+
   "hostRequirements": {
     "cpus": 2,
     "memory": "8gb",

@@ -82,9 +82,13 @@ function splitStatements(text) {
   let inBlock = false;
   let plsql = false;
 
+  // 一条「有实质内容」的语句至少要含一个字母/数字/下划线/汉字或引号。
+  // 编辑器自动补全可能留下单独一个 `)` 或 `;`，这类碎片发给 Oracle 会报 ORA-00900。
+  const meaningful = (sql) => /[0-9A-Za-z_\u4e00-\u9fff'"]/.test(sql);
+
   const flush = () => {
     const sql = buf.join('\n').trim();
-    if (sql) out.push(sql);
+    if (sql && meaningful(sql)) out.push(sql);
     buf = [];
     plsql = false;
   };
