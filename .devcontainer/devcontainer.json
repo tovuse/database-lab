@@ -38,10 +38,10 @@
         "files.encoding": "utf8",
         "files.eol": "\n",
 
-        "//trust": "关掉工作区信任弹窗，学生打开即可用，不用点「信任文件夹并继续」",
-        "security.workspace.trust.enabled": false,
-
-        "//coderoad": "CodeRoad 面板一打开就展开，配合下面的自动启动命令",
+        "//trust": "注意：security.workspace.trust.enabled 在这里设了也没用——",
+        "//trust2": "它是机器/用户级设置，工作区配置覆盖不了。信任弹窗只能学生手动点一次，",
+        "//trust3": "详见 README 的「打开后只需要做一件事：点信任」。",
+        "//coderoad": "保存即判题，学生不用每次点 Run",
         "coderoad.runTestsOnSave": true
       }
     }

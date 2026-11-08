@@ -10,28 +10,29 @@
 https://codespaces.new/tovuse/database-lab
 ```
 
-- 第一次打开需要等 **3–5 分钟**（要启动 Oracle 数据库）
+- 第一次打开需要等 **3–5 分钟**（要拉 Oracle 镜像并启动数据库）
 - 等右侧出现 CodeRoad 面板、显示第 1 关，就可以开始了
+- 之后**每写完一关的 SQL，`Ctrl+S` 保存即可，会自动判题**
 
-### 打开后如果不对，按这三步排查
+### 打开后只需要做一件事：点「信任」
 
-**① 弹出「是否信任此文件夹中的文件的作者？」→ 点「信任文件夹并继续」**
+第一次打开会弹一个框：
 
-不点信任，VS Code 处于受限模式，扩展不会加载，CodeRoad 面板永远出不来。
+> **是否信任此文件夹中的文件的作者？**
 
-**② 右侧没有 CodeRoad 面板 → 按 `F1`，输入 `Reload Window`，回车**
+点绿色按钮 **「信任文件夹并继续」**。
 
-扩展装好了但没激活是常见情况，重载一次窗口就出来了。
+不点的话 VS Code 处于受限模式，CodeRoad 扩展不会加载，右侧永远不出面板。
+这一步是 VS Code 的安全机制，**无法通过仓库配置关掉**，必须学生自己点一次（每个新建的
+codespace 都要点，但同一个 codespace 只需点一次）。
 
-**③ 点了 Run 显示 `Test Runner Failed` → 说明环境初始化没跑完**
+### 如果还不对
 
-在终端里执行一次自检，能看到缺什么：
-
-```bash
-cd /workspaces/database-lab && bash scripts/selfCheck.sh
-```
-
-如果提示缺 Node.js 或 mocha 不可执行，按文档 §六 的说明处理，或直接把输出发给老师。
+| 现象 | 处理 |
+|---|---|
+| 右侧没有 CodeRoad 面板 | `F1` → 输入 `Reload Window` → 回车 |
+| 点 Run 显示 `Test Runner Failed` | 终端执行 `bash scripts/selfCheck.sh`，按提示处理 |
+| 面板出来了但一直转圈 | 等 1–2 分钟，Oracle 还在启动 |
 
 ## 二、怎么用
 
