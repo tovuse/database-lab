@@ -1,0 +1,3 @@
+{
+  "//": "空文件即可。CodeRoad 扩展的激活条件是 workspaceContains:*/.freeCodeCamp，放这里让它打开工作区就自动启动"
+}

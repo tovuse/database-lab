@@ -1,0 +1,6 @@
+{
+  "spec": ["./test/*.test.js"],
+  "reporter": "mocha-tap-reporter",
+  "timeout": 90000,
+  "fail-zero": false
+}

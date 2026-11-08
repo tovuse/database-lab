@@ -1,0 +1,41 @@
+{
+  "name": "数据库原理及应用 · 实验课",
+  "image": "gvenzl/oracle-free:23-slim",
+
+  "//": "不要覆盖镜像 CMD，否则 Oracle 不会启动",
+  "overrideCommand": false,
+
+  "hostRequirements": {
+    "cpus": 2,
+    "memory": "8gb",
+    "storage": "32gb"
+  },
+
+  "containerEnv": {
+    "ORACLE_PASSWORD": "oracle",
+    "APP_USER": "COURSE",
+    "APP_USER_PASSWORD": "course",
+    "CODEROAD_TUTORIAL_URL": "https://raw.githubusercontent.com/yourorg/database-lab/main/tutorial.json",
+    "NLS_LANG": "AMERICAN_AMERICA.AL32UTF8"
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "CodeRoad.coderoad",
+        "Oracle.oracledevtools"
+      ],
+      "settings": {
+        "workbench.startupEditor": "none",
+        "terminal.integrated.defaultLocation": "view",
+        "files.encoding": "utf8",
+        "files.eol": "\n"
+      }
+    }
+  },
+
+  "forwardPorts": [1521],
+
+  "postCreateCommand": "bash scripts/postCreate.sh",
+  "postStartCommand": "bash scripts/waitForDb.sh"
+}

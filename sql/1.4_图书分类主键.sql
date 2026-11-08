@@ -1,0 +1,1 @@
+ALTER TABLE 图书分类 ADD CONSTRAINT pk_图书分类 PRIMARY KEY (图书分类号);
