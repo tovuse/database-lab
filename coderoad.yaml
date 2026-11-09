@@ -227,3 +227,82 @@ levels:
           files:
             - sql/3.8_丢失过程.sql
           filter: '^3\.8 '
+  - id: '4'
+    # Level 4 = 实验四 数据库恢复与安全性。
+    # 4.1-4.3 是 Data Pump 命令（expdp/impdp），判题器解析 .sh 里的参数后自己执行；
+    # 4.4 起回到 SQL，直接在 COURSE schema 里操作。
+    # level setup 重建基线，保证每关起点一致。
+    setup:
+      commands:
+        - ./scripts/loadBaseline.sh
+    steps:
+      - id: '4.1'
+        setup:
+          files:
+            - sql/4.1_导出预约表.sh
+          filter: '^4\.1 '
+      - id: '4.2'
+        setup:
+          files:
+            - sql/4.2_导入预约表.sh
+          filter: '^4\.2 '
+      - id: '4.3'
+        setup:
+          files:
+            - sql/4.3_全库导出.sh
+          filter: '^4\.3 '
+      - id: '4.4'
+        setup:
+          files:
+            - sql/4.4_开启行移动.sql
+          filter: '^4\.4 '
+      - id: '4.5'
+        setup:
+          files:
+            - sql/4.5_闪回预约表.sql
+          filter: '^4\.5 '
+      - id: '4.6'
+        setup:
+          files:
+            - sql/4.6_建用户并授权.sql
+          filter: '^4\.6 '
+      - id: '4.7'
+        setup:
+          files:
+            - sql/4.7_查看权限.sql
+          filter: '^4\.7 '
+      - id: '4.8'
+        setup:
+          files:
+            - sql/4.8_建角色.sql
+          filter: '^4\.8 '
+      - id: '4.9'
+        setup:
+          files:
+            - sql/4.9_用户oper借书.sql
+          filter: '^4\.9 '
+      - id: '4.10'
+        setup:
+          files:
+            - sql/4.10_建视图.sql
+          filter: '^4\.10 '
+      - id: '4.11'
+        setup:
+          files:
+            - sql/4.11_授视图查询.sql
+          filter: '^4\.11 '
+      - id: '4.12'
+        setup:
+          files:
+            - sql/4.12_建PROFILE.sql
+          filter: '^4\.12 '
+      - id: '4.13'
+        setup:
+          files:
+            - sql/4.13_手工解锁.sql
+          filter: '^4\.13 '
+      - id: '4.14'
+        setup:
+          files:
+            - sql/4.14_撤销并删除用户.sql
+          filter: '^4\.14 '

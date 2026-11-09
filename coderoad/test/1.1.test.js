@@ -13,7 +13,9 @@ describe('1.1 环境自检', () => {
     await closeAll();
   });
 
-  it('应能连上课程库 FREEPDB1', async () => {
+  it('[环境] 应能连上课程库 FREEPDB1', async () => {
+    // 这条测的是「判题器能不能连上库」，不是学生答对没有。
+    // 单独标 [环境]，让失败原因一眼可辨：环境挂了 vs 答案错了。
     const svc = await scalar(
       `SELECT SYS_CONTEXT('USERENV','SERVICE_NAME') FROM dual`
     );

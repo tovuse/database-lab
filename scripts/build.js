@@ -40,6 +40,7 @@ function parseMarkdown(md) {
   let step = null; // 当前 step
   let mode = 'level-content'; // level-content | step-content | hints | subtasks
   let buf = [];
+  let inFence = false; // 代码围栏里不解析标题（bash 注释以 # 开头会误判成一级标题）
 
   const flushBuf = () => {
     const text = buf.join('\n').trim();
@@ -48,6 +49,22 @@ function parseMarkdown(md) {
   };
 
   for (const line of lines) {
+    // 代码围栏：``` 或 ~~~ 开头，进出都切换状态，围栏行本身照常进正文
+    if (/^\s*(```|~~~)/.test(line)) {
+      inFence = !inFence;
+    }
+    if (inFence) {
+      if (step) buf.push(line);
+      else if (cur) buf.push(line);
+      continue;
+    }
+    if (/^\s*(```|~~~)/.test(line)) {
+      // 上面已经切换过 inFence（此行是收尾围栏）——不解析标题，落到正文
+      if (step) buf.push(line);
+      else if (cur) buf.push(line);
+      continue;
+    }
+
     // 一级标题：课程名
     const h1 = line.match(/^#\s+(.*)$/);
     if (h1) {

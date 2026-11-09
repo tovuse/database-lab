@@ -36,6 +36,10 @@ async function closeAll() {
     await _conn.close().catch(() => {});
     _conn = null;
   }
+  if (typeof _courseConn !== 'undefined' && _courseConn) {
+    await _courseConn.close().catch(() => {});
+    _courseConn = null;
+  }
 }
 
 async function exec(sql, binds = {}) {
@@ -554,6 +558,100 @@ async function callProcedure(callSql) {
   }
 }
 
+// ---------------------------------------------------------------------
+// 实验四：数据泵 / 闪回 / 权限 专用工具
+// ---------------------------------------------------------------------
+
+const { execFileSync } = require('node:child_process');
+
+/** 判题器连库用的 DSN 与账号，和 utils 里保持一致 */
+function dsnParts() {
+  const cs = DB.connectString; // 形如 localhost:1521/FREEPDB1
+  const m = /^([^:]+):(\d+)\/(.+)$/.exec(cs);
+  return m ? { host: m[1], port: m[2], service: m[3] } : { host: 'localhost', port: '1521', service: 'FREEPDB1' };
+}
+
+/**
+ * 运行 expdp / impdp 并返回日志文本。
+ * 为什么必须在容器里跑：这两个是客户端程序，容器外没有。
+ * COURSE 已被授予 DUMPDIR 的 READ/WRITE，无需 DBA。
+ */
+function runDataPump(kind, args) {
+  const { host, port, service } = dsnParts();
+  const conn = `COURSE/course@//${host}:${port}/${service}`;
+  let out = '';
+  try {
+    out = execFileSync(kind, [conn, ...args], {
+      encoding: 'utf8',
+      timeout: 180000,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } catch (e) {
+    out = `${e.stdout || ''}${e.stderr || ''}`;
+    const first = out.split(/\r?\n/).filter((l) => /ORA-|LRM-|UDI-/.test(l))[0];
+    throw new Error(
+      `${kind} 执行失败：${first || e.message}\n  → 检查：DIRECTORY 名字、DUMPFILE 名字、TABLES/SCHEMAS 参数是否拼对`
+    );
+  }
+  return out;
+}
+
+/** 读 DUMPDIR 里的日志文件（expdp 写的是容器内的 /tmp/dump） */
+function readDumpLog(logName) {
+  const p = path.join('/tmp/dump', logName);
+  if (!fs.existsSync(p)) {
+    throw new Error(
+      `没找到导出日志 ${logName} → 检查：LOGFILE 参数是否写对、DUMPDIR 是否指向 /tmp/dump`
+    );
+  }
+  return fs.readFileSync(p, 'utf8');
+}
+
+/**
+ * 清空 TESTER 里的实验四对象（用户/角色/PROFILE 建在库级别，不在 schema 里）。
+ * 用 DBA 身份删，失败也继续——目的只是让重跑幂等。
+ */
+async function resetSecurityObjects(names = {}) {
+  const { users = [], roles = [], profiles = [], views: vws = [] } = names;
+  for (const v of vws) {
+    await exec(`DROP VIEW "${v}"`).catch(() => {});
+  }
+  for (const u of users) {
+    await exec(`DROP USER "${u}" CASCADE`).catch(() => {});
+  }
+  for (const r of roles) {
+    await exec(`DROP ROLE "${r}"`).catch(() => {});
+  }
+  for (const p of profiles) {
+    await exec(`DROP PROFILE "${p}" CASCADE`).catch(() => {});
+  }
+}
+
+/** 断言某个数据库用户存在（dba_users，跨 schema） */
+async function assertDbUser(name) {
+  const n = await scalar(`SELECT COUNT(*) FROM dba_users WHERE username = :1`, [
+    name.toUpperCase(),
+  ]);
+  if (!n) {
+    throw new Error(
+      `数据库里没有用户「${name}」 → 检查：CREATE USER 有没有执行成功（密码、profile 名是否有效）`
+    );
+  }
+}
+
+/** 断言某个用户被授予了指定角色 */
+async function assertGrantedRole(user, role) {
+  const n = await scalar(
+    `SELECT COUNT(*) FROM dba_role_privs WHERE grantee = :1 AND granted_role = :2`,
+    [user.toUpperCase(), role.toUpperCase()]
+  );
+  if (!n) {
+    throw new Error(
+      `用户「${user}」没有被授予角色「${role}」 → 检查：GRANT ${role} TO ${user}; 有没有执行`
+    );
+  }
+}
+
 /**
  * 断言某条语句必须报错，且错误信息包含指定文字。
  * 用于验证「预约时有可借图书必须拒绝」这类业务规则。
@@ -580,6 +678,314 @@ async function expectCallError(sql, keyword, hint) {
       }」 → 检查：${hint}`
     );
   }
+}
+
+// ---------------------------------------------------------------------
+// 实验四：以 COURSE 身份判题
+// 前三章判题都在 TESTER schema 里重放（不污染学生库）；
+// 但实验四的对象（用户、角色、PROFILE、DIRECTORY）是库级别的，
+// 而且 expdp/impdp 只有 COURSE 能跑，所以这一章必须在 COURSE 侧操作。
+// ---------------------------------------------------------------------
+
+const COURSE_CREDS = {
+  user: process.env.COURSE_USER || 'course',
+  password: process.env.COURSE_PASSWORD || 'course',
+  connectString: process.env.COURSE_CONN || 'localhost:1521/FREEPDB1',
+};
+
+let _courseConn = null;
+async function courseConn() {
+  if (!_courseConn) {
+    _courseConn = await oracledb.getConnection(COURSE_CREDS);
+  }
+  return _courseConn;
+}
+
+async function execAsCourse(sql, binds = {}) {
+  const c = await courseConn();
+  return c.execute(sql, binds, { autoCommit: true });
+}
+
+async function scalarAsCourse(sql, binds = {}) {
+  const rows = await queryAsCourse(sql, binds);
+  return rows.length ? rows[0][0] : null;
+}
+
+async function queryAsCourse(sql, binds = {}) {
+  const c = await courseConn();
+  const r = await c.execute(sql, binds, {
+    outFormat: oracledb.OUT_FORMAT_ARRAY,
+    fetchArraySize: 2000,
+  });
+  if (!r.rows) return [];
+  return r.rows.map((row) =>
+    row.map((v) => {
+      if (v === null || v === undefined) return null;
+      if (typeof v === 'number') return v;
+      if (v instanceof Date) return v.toISOString().slice(0, 10);
+      return String(v).trim();
+    })
+  );
+}
+
+/** 以 COURSE 身份重放学生的 .sql 文件（实验四用） */
+async function replayAsCourse(relPath) {
+  const file = path.join(WORKSPACE, relPath);
+  if (!fs.existsSync(file)) {
+    throw new Error(
+      `没找到文件 ${relPath} → 检查：文件名是否拼错、是否保存过、是否放在项目根目录的 sql/ 文件夹里`
+    );
+  }
+  const stmts = splitStatements(fs.readFileSync(file, 'utf8'));
+  if (!stmts.length) {
+    throw new Error(`${relPath} 里没有可执行的 SQL → 检查：是不是只写了注释、是不是忘了保存`);
+  }
+  for (const sql of stmts) {
+    try {
+      await execAsCourse(sql);
+    } catch (e) {
+      throw new Error(
+        `${relPath} 执行失败：${(e.message || '').split('\n')[0]}\n  → 出错语句：${sql
+          .split('\n')
+          .filter((l) => l.trim() && !l.trim().startsWith('--'))
+          .join(' ')
+          .slice(0, 160)}`
+      );
+    }
+  }
+  return stmts.length;
+}
+
+/** 以 COURSE 身份跑学生的查询文件，返回结果集 */
+async function runQueryFileAsCourse(relPath) {
+  const file = path.join(WORKSPACE, relPath);
+  if (!fs.existsSync(file)) {
+    throw new Error(`没找到文件 ${relPath} → 检查：文件名是否拼错、是否保存过`);
+  }
+  const text = stripComments(fs.readFileSync(file, 'utf8')).replace(/;\s*$/, '').trim();
+  if (!text) {
+    throw new Error('文件里没有 SQL 语句 → 检查：是不是只写了注释、是不是忘了保存');
+  }
+  const rows = await queryAsCourse(text);
+  return rows;
+}
+
+/**
+ * 把 COURSE 库重建成基线。
+ * 不用 scripts/loadBaseline.sh：那脚本依赖 sqlplus，判题进程所在环境不一定有。
+ * 这里用 oracledb 直接清对象 + 重放 answers/00_基线.sql，容器内外都能跑。
+ */
+async function loadCourseBaseline() {
+  const lists = [
+    ['TRIGGER', `SELECT trigger_name FROM user_triggers`],
+    ['VIEW', `SELECT view_name FROM user_views`],
+    ['SEQUENCE', `SELECT sequence_name FROM user_sequences`],
+    ['TABLE', `SELECT table_name FROM user_tables`],
+  ];
+  for (const [type, sql] of lists) {
+    let rows = [];
+    try {
+      rows = await queryAsCourse(sql);
+    } catch {
+      continue;
+    }
+    for (const row of rows) {
+      const stmt = type === 'TABLE'
+        ? `DROP TABLE "${row[0]}" CASCADE CONSTRAINTS PURGE`
+        : `DROP ${type} "${row[0]}"`;
+      await execAsCourse(stmt).catch(() => {});
+    }
+  }
+  await replayAsCourse('answers/00_基线.sql');
+}
+
+/** 断言 COURSE 库里有这张表 */
+async function assertCourseTable(name) {
+  const n = await scalarAsCourse(
+    `SELECT COUNT(*) FROM user_tables WHERE table_name = :1`,
+    [name.toUpperCase()]
+  );
+  if (!n) {
+    throw new Error(
+      `COURSE 库里没有「${name}」表 → 检查：是否被 DROP 掉了、导入有没有成功`
+    );
+  }
+}
+
+/** 删掉 DUMPDIR 里的旧转储文件，保证判题看到的是本次产物 */
+function cleanDumpFiles(prefix) {
+  const dir = '/tmp/dump';
+  if (!fs.existsSync(dir)) return;
+  for (const f of fs.readdirSync(dir)) {
+    if (f.startsWith(prefix)) fs.unlinkSync(path.join(dir, f));
+  }
+}
+
+/** 当前时间字符串（用于给转储文件打上唯一后缀，避开重名） */
+function stamp() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** 执行学生的 shell 脚本（Data Pump 这类终端命令用） */
+function runShellFile(relPath) {
+  const file = path.join(WORKSPACE, relPath);
+  if (!fs.existsSync(file)) {
+    throw new Error(`没找到文件 ${relPath} → 检查：文件名是否拼错、是否保存过`);
+  }
+  try {
+    return execFileSync('bash', [file], {
+      cwd: WORKSPACE,
+      encoding: 'utf8',
+      timeout: 240000,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } catch (e) {
+    const out = `${e.stdout || ''}${e.stderr || ''}`;
+    const first = out.split(/\r?\n/).filter((l) => /ORA-|LRM-|UDI-|command not found/.test(l))[0];
+    throw new Error(
+      `${relPath} 执行失败：${first || e.message}\n  → 检查：命令本身语法对不对、参数（DIRECTORY/DUMPFILE/TABLES）有没有写全`
+    );
+  }
+}
+
+/** 用指定账号试着登录，返回 true/false（测权限用，不抛异常） */
+async function tryLogin(user, password, sql = 'SELECT 1 FROM dual') {
+  let c;
+  try {
+    c = await oracledb.getConnection({ user, password, connectString: DB.connectString });
+    await c.execute(sql);
+    return true;
+  } catch {
+    return false;
+  } finally {
+    if (c) await c.close().catch(() => {});
+  }
+}
+
+/**
+ * 从学生的 .sh/.sql 里解析出 expdp/impdp 的参数。
+ * 为什么解析而不是直接 bash 执行学生文件：
+ *   判题进程不应该盲目执行学生写的任意 shell。
+ *   这里只接受 expdp/impdp 一行命令 + KEY=VALUE 形式的参数，
+ *   其余内容（管道、重定向、其他命令）一律拒绝。
+ * @returns {{kind:string, params:Object}} params 键为大写
+ */
+function parsePumpCommand(relPath, kind) {
+  const file = path.join(WORKSPACE, relPath);
+  if (!fs.existsSync(file)) {
+    throw new Error(`没找到文件 ${relPath} → 检查：文件名是否拼错、是否保存过`);
+  }
+
+  // 先把行尾反斜杠的续行拼成逻辑行，再逐条找命令。
+  const logical = [];
+  let cur = '';
+  for (const raw of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
+    const t = raw.replace(/\s+$/, '');
+    if (cur) cur += ' ';
+    cur += t.replace(/\s*\\$/, '');
+    if (!/\s*\\$/.test(t)) {
+      logical.push(cur);
+      cur = '';
+    }
+  }
+  if (cur) logical.push(cur);
+
+  const line = logical
+    .map((l) => l.trim())
+    .find((l) => !l.startsWith('--') && !l.startsWith('#') && new RegExp(`^${kind}\\b`, 'i').test(l));
+
+  if (!line) {
+    throw new Error(
+      `没找到 ${kind} 命令 → 检查：这一关要在文件里写一条 ${kind} 命令（不是 SQL），命令名要写全`
+    );
+  }
+  if (/[|;&`$()<>]/.test(line)) {
+    throw new Error(
+      `命令里含有 shell 特殊符号（| ; & \` $ ( ) < >）→ 检查：只写一条 ${kind} 命令，不要加管道或重定向`
+    );
+  }
+
+  const tokens = line.split(/\s+/).slice(1);
+  const params = {};
+  for (const t of tokens) {
+    const m = /^([A-Za-z_]+)=(.*)$/.exec(t);
+    if (!m) {
+      // 连接串（COURSE/course@//host:port/service）允许出现，其余裸参数报警
+      if (t.includes('/') || t.includes('@')) continue;
+      throw new Error(
+        `看不懂这个参数：「${t}」→ 检查：参数要写成 名字=值 的形式，例如 DIRECTORY=DUMPDIR`
+      );
+    }
+    params[m[1].toUpperCase()] = m[2];
+  }
+
+  const need = ['DIRECTORY', 'DUMPFILE', 'LOGFILE'];
+  for (const k of need) {
+    if (!params[k]) {
+      throw new Error(
+        `缺少 ${k} 参数 → 检查：${kind} 命令里要写 ${need.join('、')}，缺一不可`
+      );
+    }
+  }
+  if (!params.TABLES && !params.SCHEMAS) {
+    throw new Error(
+      `缺少 TABLES 或 SCHEMAS 参数 → 检查：导出一张表用 TABLES=表名，导出整个用户用 SCHEMAS=COURSE`
+    );
+  }
+  const ascii = /^[\x20-\x7e]+$/;
+  for (const k of ['DUMPFILE', 'LOGFILE']) {
+    if (!ascii.test(params[k])) {
+      throw new Error(
+        `${k}=${params[k]} 含非 ASCII 字符 → 检查：Data Pump 不认中文文件名，改用纯英文（如 yuyue.dmp）`
+      );
+    }
+  }
+  return { kind, params };
+}
+
+/** 用解析出来的参数真正跑一遍 expdp/impdp */
+function runPump(parsed) {
+  const { params } = parsed;
+  const args = Object.keys(params).map((k) => `${k}=${params[k]}`);
+  return runDataPump(parsed.kind.toLowerCase(), args);
+}
+
+/** DUMPDIR 里是否存在某个文件（判"导出真的产生了文件"） */
+function dumpFileExists(name) {
+  const p = path.join('/tmp/dump', name);
+  return fs.existsSync(p) && fs.statSync(p).size > 0;
+}
+
+/** 以 COURSE 身份跑学生的多语句查询文件，返回每条 SELECT 的结果集数组 */
+async function runMultiQueryFileAsCourse(relPath) {
+  const file = path.join(WORKSPACE, relPath);
+  if (!fs.existsSync(file)) {
+    throw new Error(`没找到文件 ${relPath} → 检查：文件名是否拼错、是否保存过`);
+  }
+  const stmts = splitStatements(fs.readFileSync(file, 'utf8'));
+  if (!stmts.length) {
+    throw new Error('文件里没有 SQL 语句 → 检查：是不是只写了注释、是不是忘了保存');
+  }
+  const results = [];
+  for (const sql of stmts) {
+    try {
+      const rows = await queryAsCourse(stripComments(sql).replace(/;\s*$/, ''));
+      results.push({ sql, rows });
+    } catch (e) {
+      throw new Error(
+        `这条语句报错了：${(e.message || '').split('\n')[0]}\n  → 语句：${stripComments(sql)
+          .split('\n')
+          .filter((l) => l.trim())
+          .join(' ')
+          .slice(0, 120)}`
+      );
+    }
+  }
+  return results;
 }
 
 module.exports = {
@@ -609,4 +1015,27 @@ module.exports = {
   assertCompiled,
   callProcedure,
   expectCallError,
+  runDataPump,
+  readDumpLog,
+  resetSecurityObjects,
+  assertDbUser,
+  assertGrantedRole,
+  courseConn,
+  execAsCourse,
+  scalarAsCourse,
+  queryAsCourse,
+  replayAsCourse,
+  runQueryFileAsCourse,
+  runMultiQueryFileAsCourse,
+  loadCourseBaseline,
+  assertCourseTable,
+  cleanDumpFiles,
+  stamp,
+  sleep,
+  COURSE_CREDS,
+  runShellFile,
+  tryLogin,
+  parsePumpCommand,
+  runPump,
+  dumpFileExists,
 };

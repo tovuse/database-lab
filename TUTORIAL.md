@@ -813,3 +813,395 @@ Oracle 的存储过程用 PL/SQL 写。和普通 SQL 最大的区别：**PL/SQL 
   END;
   /
   ```
+
+
+## 4. 数据库恢复与安全性
+
+> 备份恢复（Data Pump + 闪回）、用户与权限、角色、视图隔离、账号安全策略。
+>
+> 这一章的 4.1–4.3 是**终端命令**（expdp/impdp），不是 SQL；
+> 4.4 之后回到 SQL。
+
+### 4.1 用 expdp 导出「预约」表
+
+`expdp` 是 Oracle 的**数据泵导出**工具，和 `sqlplus` 一样是命令行程序——在终端里敲，不是在 SQL 里敲。
+
+```bash
+expdp 用户名/密码@连接串 DIRECTORY=目录对象 DUMPFILE=文件名.dmp LOGFILE=日志名.log TABLES=表名
+```
+
+四个参数缺一不可：
+
+| 参数 | 作用 |
+|---|---|
+| `DIRECTORY` | 目录对象名（课程已备好 `DUMPDIR`，指向容器里的 `/tmp/dump`） |
+| `DUMPFILE` | 导出的二进制文件，**必须纯英文**（中文会报 `ORA-39155`） |
+| `LOGFILE` | 日志文件名，同样纯英文 |
+| `TABLES` | 要导出的表 |
+
+> ⚠️ `DIRECTORY` 不是 Linux 路径，是数据库里的「目录对象」名字。路径本身在对象里存着。
+
+#### HINTS
+
+- 命令名是 `expdp`，后面跟连接串，再跟 `DIRECTORY=` `DUMPFILE=` `LOGFILE=` `TABLES=` 四个参数
+- 骨架：`expdp COURSE/course@//localhost:1521/FREEPDB1 DIRECTORY=DUMPDIR DUMPFILE=yuyue.dmp LOGFILE=yuyue.log TABLES=预约`
+- 完整写法（可以分多行，行尾加 `\`）：
+  ```bash
+  expdp COURSE/course@//localhost:1521/FREEPDB1 \
+        DIRECTORY=DUMPDIR \
+        DUMPFILE=yuyue.dmp \
+        LOGFILE=yuyue.log \
+        TABLES=预约
+  ```
+
+### 4.2 删表后用 impdp 导入回来
+
+`impdp` 是 `expdp` 的反操作。顺序是：先真的把表删掉，再从转储文件导回来。
+
+```bash
+# 1. 删表（这一步在 sqlplus 里）
+sqlplus -S -L COURSE/course@//localhost:1521/FREEPDB1
+DROP TABLE 预约 CASCADE CONSTRAINTS;
+EXIT;
+
+# 2. 导入（终端里）
+impdp COURSE/course@//localhost:1521/FREEPDB1 \
+      DIRECTORY=DUMPDIR DUMPFILE=yuyue.dmp LOGFILE=imp_yuyue.log TABLES=预约
+```
+
+> ⚠️ 如果表还在，`impdp` 会报 `ORA-39151 ... due to table_exists_action of skip`，
+> 日志看起来像"完成"，实际上**什么都没导**。所以必须先删。
+
+#### HINTS
+
+- 两个动作：`DROP TABLE 预约 CASCADE CONSTRAINTS;` + 一条 `impdp`
+- `impdp` 的参数和 `expdp` 一样，只是 `LOGFILE` 换个名字避免覆盖导出日志
+- 完整写法：
+  ```bash
+  sqlplus -S -L COURSE/course@//localhost:1521/FREEPDB1 <<'SQL'
+  DROP TABLE 预约 CASCADE CONSTRAINTS;
+  EXIT;
+  SQL
+
+  impdp COURSE/course@//localhost:1521/FREEPDB1 \
+        DIRECTORY=DUMPDIR DUMPFILE=yuyue.dmp LOGFILE=imp_yuyue.log TABLES=预约
+  ```
+
+### 4.3 按用户（schema）方式导出整个库
+
+4.1 用 `TABLES=` 导一张表，这一关用 `SCHEMAS=` 导一整个用户的全部对象（所有表、约束、索引……）。
+
+```bash
+expdp COURSE/course@//localhost:1521/FREEPDB1 \
+      DIRECTORY=DUMPDIR DUMPFILE=course.dmp LOGFILE=course.log SCHEMAS=COURSE
+```
+
+`SCHEMAS` 和 `TABLES` 是**互斥**的：导整库用 `SCHEMAS`，导单表用 `TABLES`。
+
+#### HINTS
+
+- 把 4.1 的 `TABLES=预约` 换成 `SCHEMAS=COURSE`，其余不变
+- 值要用大写 `COURSE`（schema 名）
+- 完整写法：
+  ```bash
+  expdp COURSE/course@//localhost:1521/FREEPDB1 \
+        DIRECTORY=DUMPDIR \
+        DUMPFILE=course.dmp \
+        LOGFILE=course.log \
+        SCHEMAS=COURSE
+  ```
+
+### 4.4 让「预约」表支持闪回
+
+`FLASHBACK TABLE` 能把表恢复到之前某个时刻的样子，但前提是这张表开了**行移动**（row movement）。
+
+```sql
+ALTER TABLE 预约 ENABLE ROW MOVEMENT;
+```
+
+不开就闪回，会报：
+
+```
+ORA-08189: cannot flashback the table because row movement is not enabled
+```
+
+#### HINTS
+
+- 用 `ALTER TABLE` 改表的属性，关键字是 `ENABLE ROW MOVEMENT`
+- 骨架：`ALTER TABLE 表名 ENABLE ROW MOVEMENT;`
+- 完整写法：`ALTER TABLE 预约 ENABLE ROW MOVEMENT;`
+
+### 4.5 删掉数据再闪回
+
+两步：先删，再闪回。
+
+```sql
+DELETE FROM 预约;
+COMMIT;
+
+FLASHBACK TABLE 预约 TO TIMESTAMP (SYSTIMESTAMP - INTERVAL '5' SECOND);
+```
+
+> ⚠️ **这一关最容易踩的坑**：闪回的目标时间必须**晚于这张表最后一次结构变更（DDL）**。
+> 4.4 的 `ENABLE ROW MOVEMENT` 就是一次 DDL，所以不能写 `- INTERVAL '5' MINUTE`，
+> 那会落在 DDL 之前，报：
+>
+> ```
+> ORA-01466: unable to read data - table definition has changed
+> ```
+>
+> 判题器会在你交卷前保证 4.4 执行完到判题之间有足够间隔，写 `5 SECOND` 就行。
+
+#### HINTS
+
+- 先 `DELETE FROM 预约;` 再 `COMMIT;`，然后 `FLASHBACK TABLE 预约 TO TIMESTAMP (...)` 到几秒前
+- 时间写成 `SYSTIMESTAMP - INTERVAL '5' SECOND`（秒，不是分钟）
+- 完整写法：
+  ```sql
+  DELETE FROM 预约;
+  COMMIT;
+
+  FLASHBACK TABLE 预约 TO TIMESTAMP (SYSTIMESTAMP - INTERVAL '5' SECOND);
+  ```
+### 4.6 建用户并授 CONNECT / RESOURCE
+
+数据库里每个应用/每个人一个用户。建完要授角色才能干活：
+
+- `CONNECT`：能登录（最基础）
+- `RESOURCE`：能建表、建索引
+
+```sql
+CREATE USER zhangwei IDENTIFIED BY zw2026oracle;
+GRANT CONNECT, RESOURCE TO zhangwei;
+```
+
+> ⚠️ 23ai 的默认密码策略区分大小写、要求不能纯数字，`123456` 这种会报 `ORA-28003`。
+
+#### HINTS
+
+- 两条语句：`CREATE USER 名字 IDENTIFIED BY 密码;` + `GRANT ... TO 名字;`
+- 两个角色可以写在一条 GRANT 里，用逗号隔开
+- 完整写法：
+  ```sql
+  CREATE USER zhangwei IDENTIFIED BY zw2026oracle;
+  GRANT CONNECT, RESOURCE TO zhangwei;
+  ```
+
+### 4.7 用数据字典查三类权限
+
+Oracle 把"谁有什么权限"存在数据字典视图里。三张最常用：
+
+| 视图 | 查什么 |
+|---|---|
+| `user_role_privs` | 我有哪些角色 |
+| `user_sys_privs` | 我有哪些系统权限（CREATE USER、DROP ANY TABLE…） |
+| `user_tab_privs` | 我有哪些对象权限（某张表上的 SELECT、EXECUTE…） |
+
+`user_` 前缀的视图只显示**你自己**的权限；换成 `dba_` 就能看全库（需要权限）。
+
+#### HINTS
+
+- 三条 `SELECT * FROM 视图名;`，视图名分别以 `user_role_privs` / `user_sys_privs` / `user_tab_privs` 结尾
+- 三个视图都是「user_ 开头」，只显示当前用户的
+- 完整写法：
+  ```sql
+  SELECT * FROM user_role_privs;
+  SELECT * FROM user_sys_privs;
+  SELECT * FROM user_tab_privs;
+  ```
+
+### 4.8 建角色「图书管理员」
+
+角色是**一组权限的打包**。先把权限授给角色，再把角色授给人，就不用一个个授。
+
+这个角色要能登录、查书目、调三个过程：
+
+```sql
+CREATE ROLE 图书管理员;
+GRANT CONNECT TO 图书管理员;
+GRANT SELECT ON 书目 TO 图书管理员;
+GRANT EXECUTE ON 借书 TO 图书管理员;
+GRANT EXECUTE ON 还书 TO 图书管理员;
+GRANT EXECUTE ON 图书预约 TO 图书管理员;
+```
+
+> 💡 为什么授 `CONNECT` 角色而不是 `CREATE SESSION` 系统权限：
+> 给角色授**系统权限**需要 `GRANT ANY PRIVILEGE`，课程用户没有这个权限；
+> 授**角色**只需要 `GRANT ANY ROLE`（有）。教学效果一样。
+
+#### HINTS
+
+- 一条 `CREATE ROLE`，然后若干条 `GRANT ... TO 图书管理员`
+- 过程上的权限关键字是 `EXECUTE`，表上的叫 `SELECT`
+- 完整写法：
+  ```sql
+  CREATE ROLE 图书管理员;
+  GRANT CONNECT TO 图书管理员;
+  GRANT SELECT ON 书目 TO 图书管理员;
+  GRANT EXECUTE ON 借书 TO 图书管理员;
+  GRANT EXECUTE ON 还书 TO 图书管理员;
+  GRANT EXECUTE ON 图书预约 TO 图书管理员;
+  ```
+
+### 4.9 建 用户_oper，授角色，用它借书
+
+```sql
+CREATE USER 用户_oper IDENTIFIED BY oper2026;
+GRANT 图书管理员 TO 用户_oper;
+```
+
+建完要验证权限真的能用。切到这个用户去调过程：
+
+```bash
+sqlplus 用户_oper/oper2026@//localhost:1521/FREEPDB1
+```
+
+```sql
+BEGIN COURSE.借书(9001, '20081237', '2001231'); END;
+/
+```
+
+> ⚠️ 跨 schema 调过程必须带 `COURSE.` 前缀。
+> 直接写 `借书(...)` 会报 `PLS-00201: identifier '借书' must be declared`——
+> 因为这个名字在 `用户_oper` 自己的 schema 里不存在。
+
+#### HINTS
+
+- `CREATE USER` + `GRANT 图书管理员 TO 用户_oper;`
+- 过程名前必须加 `COURSE.`，三个参数是（流水号、借书证号、图书编号）
+- 完整写法：
+  ```sql
+  CREATE USER 用户_oper IDENTIFIED BY oper2026;
+  GRANT 图书管理员 TO 用户_oper;
+  ```
+  然后另开一个 sqlplus 登录 `用户_oper`，执行：
+  ```sql
+  BEGIN COURSE.借书(9001, '20081237', '2001231'); END;
+  /
+  ```
+
+### 4.10 建视图 VIEW_READER
+
+视图是**存起来的查询**。这里把书目和它的分类名拼成一张"虚拟表"。
+
+```sql
+CREATE OR REPLACE VIEW VIEW_READER AS
+SELECT b.ISBN, b.书名, c.类名
+  FROM 书目 b
+  JOIN 图书分类 c ON b.图书分类号 = c.图书分类号;
+```
+
+`CREATE OR REPLACE` 的好处：视图已存在时直接替换，不报错，可以反复执行。
+
+#### HINTS
+
+- `CREATE OR REPLACE VIEW 名字 AS SELECT ...`，SELECT 里要 JOIN 图书分类
+- 三列：`b.ISBN`、`b.书名`、`c.类名`；连接条件 `b.图书分类号 = c.图书分类号`
+- 完整写法：
+  ```sql
+  CREATE OR REPLACE VIEW VIEW_READER AS
+  SELECT b.ISBN, b.书名, c.类名
+    FROM 书目 b
+    JOIN 图书分类 c ON b.图书分类号 = c.图书分类号;
+  ```
+
+### 4.11 建 用户_USER1，只授视图查询
+
+这一关演示**视图做权限隔离**：
+
+- 给用户 `VIEW_READER` 的 SELECT → 能查视图
+- **不给** `书目` 的 SELECT → 不能查基表
+
+这样用户只能看到视图暴露的那三列，看不到书目的其他列（比如单价、出版社）。
+
+```sql
+CREATE USER 用户_USER1 IDENTIFIED BY view2026;
+GRANT CONNECT TO 用户_USER1;
+GRANT SELECT ON VIEW_READER TO 用户_USER1;
+```
+
+#### HINTS
+
+- 三条：建用户、给 CONNECT、给视图的 SELECT
+- **不要**给 `书目`、`图书` 这些基表授权，否则隔离就失效了
+- 完整写法：
+  ```sql
+  CREATE USER 用户_USER1 IDENTIFIED BY view2026;
+  GRANT CONNECT TO 用户_USER1;
+  GRANT SELECT ON VIEW_READER TO 用户_USER1;
+  ```
+
+### 4.12 建 PROFILE「限时锁定」
+
+PROFILE 是**账号安全策略的模板**：密码错几次锁、锁多久、密码多久过期。
+
+```sql
+CREATE PROFILE 限时锁定 LIMIT
+  FAILED_LOGIN_ATTEMPTS 3
+  PASSWORD_LOCK_TIME 10;
+```
+
+| 参数 | 含义 |
+|---|---|
+| `FAILED_LOGIN_ATTEMPTS 3` | 连续错 3 次就锁 |
+| `PASSWORD_LOCK_TIME 10` | 锁 10 天（单位是天） |
+
+> 📌 本关只校验参数配置，不真的让你连错 3 次密码——
+> 那会把你自己的账号锁住、还要额外解锁，且污染审计日志。
+> 讲义把这个取舍讲明白：**会配策略**是本关目标。
+
+#### HINTS
+
+- `CREATE PROFILE 名字 LIMIT 参数 值 参数 值;`
+- 两个参数名：`FAILED_LOGIN_ATTEMPTS` 和 `PASSWORD_LOCK_TIME`
+- 完整写法：
+  ```sql
+  CREATE PROFILE 限时锁定 LIMIT
+    FAILED_LOGIN_ATTEMPTS 3
+    PASSWORD_LOCK_TIME 10;
+  ```
+
+### 4.13 手工解锁被锁的账号
+
+账号被锁后，管理员不用等 10 天，可以直接解锁：
+
+```sql
+ALTER USER 用户_USER1 ACCOUNT UNLOCK;
+```
+
+如果账号是因为**密码过期**被锁，只 UNLOCK 不够，要重置密码：
+
+```sql
+ALTER USER 用户_USER1 IDENTIFIED BY view2026;
+```
+
+#### HINTS
+
+- 用 `ALTER USER 用户名 ACCOUNT UNLOCK;`
+- 注意是 `ACCOUNT UNLOCK` 两个词，不是 `UNLOCK ACCOUNT`
+- 完整写法：`ALTER USER 用户_USER1 ACCOUNT UNLOCK;`
+
+### 4.14 撤销权限并删除用户
+
+清理工作分两步，顺序不能反：
+
+```sql
+REVOKE SELECT ON VIEW_READER FROM 用户_USER1;
+DROP USER 用户_USER1;
+```
+
+> 💡 其实 `DROP USER` 会**自动**把该用户的所有授权记录删掉，
+> 所以 `REVOKE` 严格来说不是必须的。但要养成习惯：
+> 先明确收回授权，再删账号——审计日志里能看出"权限被主动收回了"。
+>
+> ⚠️ 只撤授权、删用户，**不要 DROP VIEW**：视图是你自己的对象，还要留给别人用。
+
+#### HINTS
+
+- `REVOKE 权限 ON 对象 FROM 用户;` + `DROP USER 用户名;`
+- 如果用户自己建过对象，`DROP USER` 要加 `CASCADE`
+- 完整写法：
+  ```sql
+  REVOKE SELECT ON VIEW_READER FROM 用户_USER1;
+  DROP USER 用户_USER1;
+  ```
