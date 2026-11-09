@@ -94,6 +94,219 @@ Oracle 常用类型：
     ADD CONSTRAINT pk_图书分类 PRIMARY KEY (图书分类号);
   ```
 
+### 1.5 建「罚款分类」表
+
+罚款分类要加一条 `CHECK` 约束：罚金必须大于 0。`CHECK` 写在括号里，条件不满足时插入会被拒绝。
+
+- `罚款分类号` `NUMBER(1)`，主键
+- `罚款名称` `VARCHAR2(20)`，不能为空
+- `罚金` `NUMBER(6,2)`，不能为空，且 `CHECK (罚金 > 0)`
+
+#### HINTS
+
+- 表级约束写在列定义后面，用逗号隔开：`CONSTRAINT 约束名 CHECK (条件)`
+- 骨架：`CREATE TABLE 罚款分类 (罚款分类号 NUMBER(1) NOT NULL, 罚款名称 VARCHAR2(20) NOT NULL, 罚金 NUMBER(6,2) NOT NULL, CONSTRAINT pk_罚款分类 PRIMARY KEY (罚款分类号), CONSTRAINT ck_罚款金额 CHECK (罚金 > 0));`
+- 完整写法：
+  ```sql
+  CREATE TABLE 罚款分类 (
+    罚款分类号 NUMBER(1)    NOT NULL,
+    罚款名称   VARCHAR2(20) NOT NULL,
+    罚金       NUMBER(6,2)  NOT NULL,
+    CONSTRAINT pk_罚款分类 PRIMARY KEY (罚款分类号),
+    CONSTRAINT ck_罚款金额 CHECK (罚金 > 0)
+  );
+  ```
+
+### 1.6 建「书目」表（含外键）
+
+`书目` 要指向 `图书分类`，这就是**外键**：`图书分类号` 的值必须在 `图书分类` 表里存在。
+
+- `ISBN` `VARCHAR2(13)`，主键
+- `书名` `VARCHAR2(60)`，不能为空
+- `作者` `VARCHAR2(30)`、`出版单位` `VARCHAR2(50)`
+- `单价` `NUMBER(7,2)`，`CHECK (单价 >= 0)`
+- `图书分类号` `CHAR(3)`，不能为空，外键指向 `图书分类(图书分类号)`
+
+> ⚠️ 前置条件：`图书分类` 必须已经有主键，否则外键建不起来（报 `ORA-02270`）。
+
+#### HINTS
+
+- 外键写法：`CONSTRAINT 约束名 FOREIGN KEY (本表列) REFERENCES 另一张表(它的列)`
+- 骨架：`... CONSTRAINT fk_书目_分类 FOREIGN KEY (图书分类号) REFERENCES 图书分类(图书分类号)`
+- 完整写法：
+  ```sql
+  CREATE TABLE 书目 (
+    ISBN       VARCHAR2(13) NOT NULL,
+    书名       VARCHAR2(60) NOT NULL,
+    作者       VARCHAR2(30),
+    出版单位   VARCHAR2(50),
+    单价       NUMBER(7,2),
+    图书分类号 CHAR(3)      NOT NULL,
+    CONSTRAINT pk_书目      PRIMARY KEY (ISBN),
+    CONSTRAINT fk_书目_分类 FOREIGN KEY (图书分类号) REFERENCES 图书分类(图书分类号),
+    CONSTRAINT ck_书目_单价 CHECK (单价 >= 0)
+  );
+  ```
+
+### 1.7 建「图书」表
+
+`图书` 指向 `书目`。另外 `是否借出` 要有**默认值** `'否'`——插入时不写这一列，自动填这个值。
+
+#### HINTS
+
+- 默认值写法：`是否借出 CHAR(3) DEFAULT '否' NOT NULL`
+- 注意 `CHAR(3)` 不是 `CHAR(1)`：一个汉字占 3 字节
+- 完整写法：
+  ```sql
+  CREATE TABLE 图书 (
+    图书编号 CHAR(7)      NOT NULL,
+    ISBN     VARCHAR2(13) NOT NULL,
+    是否借出 CHAR(3)      DEFAULT '否' NOT NULL,
+    备注     VARCHAR2(100),
+    CONSTRAINT pk_图书      PRIMARY KEY (图书编号),
+    CONSTRAINT fk_图书_书目 FOREIGN KEY (ISBN) REFERENCES 书目(ISBN)
+  );
+  ```
+
+### 1.8 建「读者」表
+
+性别只能是「男」或「女」，用 `IN` 写。
+
+#### HINTS
+
+- `CONSTRAINT ck_读者_性别 CHECK (性别 IN ('男', '女'))`
+- 性别用 `CHAR(3)`，因为一个汉字占 3 字节
+- 完整写法：
+  ```sql
+  CREATE TABLE 读者 (
+    借书证号   CHAR(8)      NOT NULL,
+    姓名       VARCHAR2(20) NOT NULL,
+    单位       VARCHAR2(60),
+    性别       CHAR(3),
+    地址       VARCHAR2(80),
+    联系电话   VARCHAR2(20),
+    身份证编号 VARCHAR2(18),
+    CONSTRAINT pk_读者      PRIMARY KEY (借书证号),
+    CONSTRAINT ck_读者_性别 CHECK (性别 IN ('男','女'))
+  );
+  ```
+
+### 1.9 建「借阅」表（三个外键）
+
+`借阅` 是核心表，同时指向 `读者`、`图书`、`罚款分类`。再加一条 CHECK 保证归还日期不早于借书日期。
+
+#### HINTS
+
+- 三个外键要分别写，名字别重复
+- CHECK：`归还日期 IS NULL OR 归还日期 >= 借书日期`（没还的时候归还日期是空的，要放行）
+- 完整写法：
+  ```sql
+  CREATE TABLE 借阅 (
+    借阅流水号 NUMBER(6) NOT NULL,
+    借书证号   CHAR(8)   NOT NULL,
+    图书编号   CHAR(7)   NOT NULL,
+    借书日期   DATE,
+    归还日期   DATE,
+    罚款分类号 NUMBER(1),
+    备注       VARCHAR2(100),
+    CONSTRAINT pk_借阅      PRIMARY KEY (借阅流水号),
+    CONSTRAINT fk_借阅_读者 FOREIGN KEY (借书证号)   REFERENCES 读者(借书证号),
+    CONSTRAINT fk_借阅_图书 FOREIGN KEY (图书编号)   REFERENCES 图书(图书编号),
+    CONSTRAINT fk_借阅_罚款 FOREIGN KEY (罚款分类号) REFERENCES 罚款分类(罚款分类号),
+    CONSTRAINT ck_借阅_日期 CHECK (归还日期 IS NULL OR 归还日期 >= 借书日期)
+  );
+  ```
+
+### 1.10 建「预约」表
+
+#### HINTS
+
+- 预约时间要有默认值：`预约时间 DATE DEFAULT SYSDATE NOT NULL`
+- 两个外键分别指向 `读者` 和 `书目`
+- 完整写法：
+  ```sql
+  CREATE TABLE 预约 (
+    预约流水号 NUMBER(6)    NOT NULL,
+    借书证号   CHAR(8)      NOT NULL,
+    ISBN       VARCHAR2(13) NOT NULL,
+    预约时间   DATE         DEFAULT SYSDATE NOT NULL,
+    CONSTRAINT pk_预约      PRIMARY KEY (预约流水号),
+    CONSTRAINT fk_预约_读者 FOREIGN KEY (借书证号) REFERENCES 读者(借书证号),
+    CONSTRAINT fk_预约_书目 FOREIGN KEY (ISBN)     REFERENCES 书目(ISBN)
+  );
+  ```
+
+### 1.11 给 7 张表插入原始数据
+
+指导书 3.1.4 第 7 步的表格数据。**插入顺序很重要**：先插被引用的表，再插引用它们的表。
+
+顺序：`图书分类` → `罚款分类` → `书目` → `图书` → `读者` → `借阅` → `预约`
+
+> ⚠️ 日期不能直接写字符串，要用 `TO_DATE('2010/09/19','yyyy/mm/dd')`。
+
+#### HINTS
+
+- 单行插入：`INSERT INTO 表名 (列1, 列2) VALUES (值1, 值2);`
+- 7 张表的完整数据见仓库里的 `answers/00_基线.sql`，一共 27 条 INSERT，可以对照着抄
+- 完整写法（节选，完整版对照 `answers/00_基线.sql`）：
+  ```sql
+  INSERT INTO 图书分类 (图书分类号, 类名) VALUES ('100', '文学');
+  INSERT INTO 图书分类 (图书分类号, 类名) VALUES ('200', '科技');
+  INSERT INTO 图书分类 (图书分类号, 类名) VALUES ('300', '哲学');
+
+  INSERT INTO 书目 (ISBN, 书名, 作者, 出版单位, 单价, 图书分类号)
+  VALUES ('7040195836', '数据库系统概论', '王珊', '高等教育出版社', 39.00, '200');
+  -- ……其余 26 条见 answers/00_基线.sql
+
+  INSERT INTO 借阅 (借阅流水号, 借书证号, 图书编号, 借书日期, 归还日期)
+  VALUES (1, '20081237', '3007071',
+          TO_DATE('2010/09/19','yyyy/mm/dd'), TO_DATE('2010/09/20','yyyy/mm/dd'));
+  ```
+
+### 1.12 数据的增、删、改
+
+`INSERT` 加数据、`UPDATE` 改数据、`DELETE` 删数据。三个动作都要真的影响数据。
+
+- 插入分类 `'400'`，类名 `'艺术'`
+- 把它改成 `'艺术设计'`
+- 再删掉
+
+#### HINTS
+
+- `UPDATE 表名 SET 列 = 新值 WHERE 条件;`、`DELETE FROM 表名 WHERE 条件;`
+- **删改一定要带 WHERE**，否则会动整张表
+- 完整写法：
+  ```sql
+  INSERT INTO 图书分类 (图书分类号, 类名) VALUES ('400', '艺术');
+  UPDATE 图书分类 SET 类名 = '艺术设计' WHERE 图书分类号 = '400';
+  DELETE FROM 图书分类 WHERE 图书分类号 = '400';
+  ```
+
+### 1.13 完整性约束扩展
+
+指导书 3.1.5 要求给已有表补约束。用 `ALTER TABLE ... ADD CONSTRAINT`。
+
+- 联系电话必须是 11 位数字
+- 身份证编号必须是 18 位
+- 是否借出只能是 `'是'` 或 `'否'`
+- 借书日期不能为空（这个用 `MODIFY`，不是 CHECK）
+
+#### HINTS
+
+- 位数用 `LENGTH()`；11 位数字用 `REGEXP_LIKE(联系电话, '^[0-9]{11}$')` 更严格
+- 改非空用 `ALTER TABLE 表名 MODIFY (列名 NOT NULL);`，不是加约束
+- 完整写法：
+  ```sql
+  ALTER TABLE 读者 ADD CONSTRAINT ck_读者_电话
+    CHECK (REGEXP_LIKE(联系电话, '^[0-9]{11}$'));
+  ALTER TABLE 读者 ADD CONSTRAINT ck_读者_身份证
+    CHECK (LENGTH(身份证编号) = 18);
+  ALTER TABLE 图书 ADD CONSTRAINT ck_图书_借出
+    CHECK (是否借出 IN ('是','否'));
+  ALTER TABLE 借阅 MODIFY (借书日期 NOT NULL);
+  ```
+
+
 ## 2. 数据查询
 
 > 考试里 15 道查询题，我们一题一关。判题只看**结果集**，不看你怎么写——
@@ -211,6 +424,183 @@ Oracle 常用类型：
    WHERE l.归还日期 IS NULL
    ORDER BY r.借书证号;
   ```
+
+### 2.6 统计「红楼梦」各版的藏书数量
+
+按 ISBN 分组，数一数每个版本各有几册。注意用 `LEFT JOIN`：万一某个版本一本都没藏，也要显示成 0。
+
+- 列：`ISBN`、`书名`、`册数`
+- 按 `ISBN` 排序
+
+#### HINTS
+
+- 从 `书目` 出发 `LEFT JOIN 图书`，再 `COUNT(t.图书编号)`
+- 骨架：`SELECT b.ISBN, b.书名, COUNT(t.图书编号) FROM 书目 b LEFT JOIN 图书 t ON b.ISBN=t.ISBN WHERE b.书名='红楼梦' GROUP BY b.ISBN, b.书名 ORDER BY b.ISBN`
+- 完整写法：
+  ```sql
+  SELECT b.ISBN, b.书名, COUNT(t.图书编号) AS 册数
+    FROM 书目 b LEFT JOIN 图书 t ON b.ISBN = t.ISBN
+   WHERE b.书名 = '红楼梦'
+   GROUP BY b.ISBN, b.书名
+   ORDER BY b.ISBN;
+  ```
+
+### 2.7 查询借书证号 20061234 借阅未还的图书
+
+比 2.5 窄一层：只看一个读者的。但拿书名还是要连 `图书` 和 `书目`。
+
+#### HINTS
+
+- 两个条件：`l.借书证号 = '20061234'`、`l.归还日期 IS NULL`
+- 列只要 `图书编号` 和 `书名`，但仍需连表才拿得到书名
+- 完整写法：
+  ```sql
+  SELECT t.图书编号, b.书名
+    FROM 借阅 l
+    JOIN 图书 t ON l.图书编号 = t.图书编号
+    JOIN 书目 b ON t.ISBN = b.ISBN
+   WHERE l.借书证号 = '20061234' AND l.归还日期 IS NULL;
+  ```
+
+### 2.8 查询借阅了两本及以上图书的读者
+
+分组之后要按「组」筛选，不能用 `WHERE`——那是对行筛选。要用 `HAVING`。
+
+#### HINTS
+
+- `GROUP BY r.借书证号, r.姓名` 之后 `HAVING COUNT(*) >= 2`
+- 写成 `WHERE COUNT(*) >= 2` 会报 ORA-00934（组函数不允许出现在 WHERE 里）
+- 完整写法：
+  ```sql
+  SELECT r.借书证号, r.姓名, COUNT(*) AS 借阅次数
+    FROM 读者 r JOIN 借阅 l ON r.借书证号 = l.借书证号
+   GROUP BY r.借书证号, r.姓名
+  HAVING COUNT(*) >= 2
+   ORDER BY r.借书证号;
+  ```
+
+### 2.9 查询「王菲」的单位、所借书名和借阅日期
+
+从 `读者` 出发一路连到 `书目`，四张表。
+
+#### HINTS
+
+- `读者 → 借阅 → 图书 → 书目`，四个 JOIN
+- 筛选条件放在 `WHERE r.姓名 = '王菲'`，日期用 `TO_CHAR` 格式化
+- 完整写法：
+  ```sql
+  SELECT r.单位, b.书名, TO_CHAR(l.借书日期, 'yyyy/mm/dd') AS 借书日期
+    FROM 读者 r
+    JOIN 借阅 l ON r.借书证号 = l.借书证号
+    JOIN 图书 t ON l.图书编号 = t.图书编号
+    JOIN 书目 b ON t.ISBN = b.ISBN
+   WHERE r.姓名 = '王菲'
+   ORDER BY l.借书日期;
+  ```
+
+### 2.10 查询每类图书的册数和平均单价
+
+三张表：`图书分类 → 书目 → 图书`。注意「每类有多少册」要数 `图书`，如果某类一本书都没有，要用 `LEFT JOIN` 才不会整个消失。
+
+#### HINTS
+
+- `图书分类 JOIN 书目`（分类必有书目，内连接可以）、`LEFT JOIN 图书`（可能没藏）
+- 平均单价从 `书目.单价` 算，不是从图书
+- 完整写法：
+  ```sql
+  SELECT c.图书分类号, c.类名,
+         COUNT(t.图书编号) AS 册数,
+         ROUND(AVG(b.单价), 2) AS 平均单价
+    FROM 图书分类 c
+    JOIN 书目 b ON c.图书分类号 = b.图书分类号
+    LEFT JOIN 图书 t ON b.ISBN = t.ISBN
+   GROUP BY c.图书分类号, c.类名
+   ORDER BY c.图书分类号;
+  ```
+
+### 2.11 统计参与借书的人数
+
+「人数」不是「借阅次数」。同一个读者借了 3 次，只能算 1 个人。
+
+#### HINTS
+
+- 用 `COUNT(DISTINCT 借书证号)`
+- 直接 `COUNT(*)` 数的是借阅条数，会多
+- 完整写法：
+  ```sql
+  SELECT COUNT(DISTINCT 借书证号) FROM 借阅;
+  ```
+
+### 2.12 检索书名以「Internet」开头的图书
+
+`LIKE` 里 `%` 代表任意多个字符。**放在结尾表示「以…开头」，放在两边表示「包含」**。
+
+#### HINTS
+
+- 以 Internet 开头：`LIKE 'Internet%'`
+- 写成 `LIKE '%Internet%'` 会把「深入理解 Internet」这种中间含的也查出来
+- 完整写法：
+  ```sql
+  SELECT 书名, 作者 FROM 书目
+   WHERE 书名 LIKE 'Internet%'
+   ORDER BY 书名;
+  ```
+
+### 2.13 查询各图书的罚款总数
+
+借阅表里只有 `罚款分类号`（1/2/3），真正的金额在 `罚款分类.罚金` 里。连起来按图书求和。
+
+#### HINTS
+
+- `借阅 JOIN 罚款分类 ON l.罚款分类号 = f.罚款分类号`，然后 `GROUP BY l.图书编号`
+- 用 `SUM(f.罚金)` 不是 `COUNT`
+- 完整写法：
+  ```sql
+  SELECT l.图书编号, SUM(f.罚金) AS 罚款总数
+    FROM 借阅 l JOIN 罚款分类 f ON l.罚款分类号 = f.罚款分类号
+   GROUP BY l.图书编号
+   ORDER BY l.图书编号;
+  ```
+
+### 2.14 查询借阅及罚款分类信息（左外连接）
+
+要列出**全部**借阅记录。没罚款的记录也要在，罚款两列留空。
+
+这就是 `LEFT JOIN` 和 `INNER JOIN` 的区别：`LEFT JOIN` 保留左表全部行。
+
+#### HINTS
+
+- `借阅 l LEFT JOIN 罚款分类 f ON l.罚款分类号 = f.罚款分类号`
+- 用普通 `JOIN` 会只剩有罚款的 2 行（基线里 6 条借阅只有 2 条有罚款）
+- 完整写法：
+  ```sql
+  SELECT l.借阅流水号, l.借书证号, l.图书编号, f.罚款名称, f.罚金
+    FROM 借阅 l LEFT JOIN 罚款分类 f ON l.罚款分类号 = f.罚款分类号
+   ORDER BY l.借阅流水号;
+  ```
+
+### 2.15 查询借阅了所有「文学」类书目的读者
+
+「全部」型问题，用**双重 NOT EXISTS**：不存在一本文学类的书，这个读者没借过。
+
+#### HINTS
+
+- 外层：遍历读者；中层：遍历文学类书目；内层：看这个读者借没借过这本书
+- 两个 `NOT EXISTS` 套起来，就是「没有一本漏借」
+- 完整写法：
+  ```sql
+  SELECT r.姓名, r.单位
+    FROM 读者 r
+   WHERE NOT EXISTS (
+           SELECT 1 FROM 书目 b
+            WHERE b.图书分类号 = '100'
+              AND NOT EXISTS (
+                  SELECT 1 FROM 借阅 l
+                    JOIN 图书 t ON l.图书编号 = t.图书编号
+                   WHERE l.借书证号 = r.借书证号 AND t.ISBN = b.ISBN))
+   ORDER BY r.姓名;
+  ```
+
 
 ## 3. 存储过程与触发器
 

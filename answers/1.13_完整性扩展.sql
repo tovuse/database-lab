@@ -1,0 +1,4 @@
+ALTER TABLE 读者 ADD CONSTRAINT ck_读者_电话 CHECK (REGEXP_LIKE(联系电话, '^[0-9]{11}$'));
+ALTER TABLE 读者 ADD CONSTRAINT ck_读者_身份证 CHECK (LENGTH(身份证编号) = 18);
+ALTER TABLE 图书 ADD CONSTRAINT ck_图书_借出 CHECK (是否借出 IN ('是','否'));
+ALTER TABLE 借阅 MODIFY (借书日期 NOT NULL);

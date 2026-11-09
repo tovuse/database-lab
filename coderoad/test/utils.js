@@ -266,18 +266,49 @@ async function assertColumn(table, column, dataType) {
   }
 }
 
+/**
+ * 断言表上有某种约束。
+ * keyword 的含义按约束类型不同：
+ *   P/U/R  —— 约束涉及的**列名**（查 user_cons_columns）
+ *   C      —— CHECK 条件或约束名里的关键词（查 search_condition_vc / constraint_name）
+ * 之所以分开，是因为主键/外键的 search_condition_vc 是 NULL，用它匹配永远查不到。
+ */
 async function assertConstraint(table, type, keyword) {
-  let sql = `SELECT COUNT(*) FROM user_constraints
-              WHERE table_name=:1 AND constraint_type=:2`;
-  const binds = [table.toUpperCase(), type];
-  if (keyword) {
-    sql += ` AND (search_condition_vc LIKE :3 OR constraint_name LIKE :3)`;
-    binds.push(`%${keyword}%`);
+  const typeName =
+    { P: '主键', R: '外键', C: 'CHECK 约束', U: '唯一约束' }[type] || type;
+  const t = table.toUpperCase();
+  let n;
+
+  if (keyword && (type === 'P' || type === 'R' || type === 'U')) {
+    // 按「约束涉及的列名」匹配
+    n = await scalar(
+      `SELECT COUNT(*)
+         FROM user_constraints c
+         JOIN user_cons_columns cc
+           ON c.constraint_name = cc.constraint_name
+          AND c.table_name = cc.table_name
+        WHERE c.table_name = :1
+          AND c.constraint_type = :2
+          AND cc.column_name = :3`,
+      [t, type, keyword.toUpperCase()]
+    );
+  } else if (keyword) {
+    // CHECK：条件表达式或约束名含关键词
+    n = await scalar(
+      `SELECT COUNT(*) FROM user_constraints
+        WHERE table_name = :1 AND constraint_type = :2
+          AND (search_condition_vc LIKE :3 OR constraint_name LIKE :4)`,
+      [t, type, `%${keyword}%`, `%${keyword}%`]
+    );
+  } else {
+    n = await scalar(
+      `SELECT COUNT(*) FROM user_constraints
+        WHERE table_name = :1 AND constraint_type = :2`,
+      [t, type]
+    );
   }
-  const n = await scalar(sql, binds);
+
   if (!n) {
-    const typeName =
-      { P: '主键', R: '外键', C: 'CHECK 约束', U: '唯一约束' }[type] || type;
     throw new Error(
       `「${table}」没有${typeName}${
         keyword ? `（涉及 ${keyword}）` : ''
