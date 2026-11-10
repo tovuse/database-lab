@@ -102,7 +102,7 @@ RUN chmod 755 /container-entrypoint-initdb.d/10_db_setup.sh /opt/course/dbSetup.
 # 这里烘一份到容器级 ENV：docker run -e 的效果，容器内所有进程都能看到。
 # devcontainer.json 里另外用 remoteEnv 再设一份 —— remoteEnv 才是规范里
 # "给 VS Code 及其子进程（扩展宿主、终端）" 的那一路，两层都设最稳。
-ENV CODEROAD_TUTORIAL_URL="https://raw.githubusercontent.com/tovuse/database-lab/main/tutorial.json"
+ENV CODEROAD_TUTORIAL_URL="https://raw.githubusercontent.com/tovuse/database-lab/feat/image-prep-and-finer-steps/tutorial.json"
 
 # 回到基础镜像的默认用户和工作目录，不要改变运行期身份
 USER oracle

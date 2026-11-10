@@ -29,7 +29,7 @@
 
   "//remoteEnv": "remoteEnv 才是 VS Code 侧读取的那一路（扩展宿主/终端/任务），CodeRoad 在扩展宿主进程里读 CODEROAD_TUTORIAL_URL。镜像里还有一份 ENV 兜底，两层都设",
   "remoteEnv": {
-    "CODEROAD_TUTORIAL_URL": "https://raw.githubusercontent.com/tovuse/database-lab/main/tutorial.json"
+    "CODEROAD_TUTORIAL_URL": "https://raw.githubusercontent.com/tovuse/database-lab/feat/image-prep-and-finer-steps/tutorial.json"
   },
 
   "customizations": {
