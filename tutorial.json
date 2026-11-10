@@ -20,17 +20,17 @@
     },
     "setup": {
       "commands": [
-        "cd coderoad && npm install"
+        "cd coderoad && { [ -d node_modules/mocha ] || npm install; }"
       ]
     },
     "continue": {
       "commands": [
-        "cd coderoad && npm install"
+        "cd coderoad && { [ -d node_modules/mocha ] || npm install; }"
       ]
     },
     "reset": {
       "commands": [
-        "cd coderoad && npm install"
+        "cd coderoad && { [ -d node_modules/mocha ] || npm install; }"
       ]
     },
     "dependencies": [

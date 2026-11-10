@@ -14,15 +14,22 @@ config:
     # branch 指向 main 只是为了让扩展能连上仓库通过校验
     uri: https://github.com/tovuse/database-lab
     branch: main
+  # 判题依赖已预装在课程镜像的 /opt/coderoad-deps，scripts/postCreate.sh 会在运行期
+  # 把它拷到 coderoad/node_modules。所以这里不再需要联网 npm install：
+  #   - 依赖在 → 直接过（命令返回 0，CodeRoad 继续进关）
+  #   - 依赖不在 → 才现场装一次（本地调试 / 老镜像的兜底）
+  # 为什么不再写死 npm install：每进一次关卡 / 每次 continue / reset 都会跑一遍，
+  # 学生网差的时候这一步会挂在 "Running process..." 上，看起来像课程卡死。
+  # 注意：这三处会被 scripts/build.js 编译进 tutorial.json，改完要重新 build。
   setup:
     commands:
-      - cd coderoad && npm install
+      - cd coderoad && { [ -d node_modules/mocha ] || npm install; }
   continue:
     commands:
-      - cd coderoad && npm install
+      - cd coderoad && { [ -d node_modules/mocha ] || npm install; }
   reset:
     commands:
-      - cd coderoad && npm install
+      - cd coderoad && { [ -d node_modules/mocha ] || npm install; }
   dependencies:
     - name: node
       version: '>=18'

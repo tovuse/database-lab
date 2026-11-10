@@ -48,8 +48,10 @@
         "//trust2": "它是机器/用户级设置，工作区配置覆盖不了。信任弹窗只能学生手动点一次。",
         "//trust3": "而且这一下不只是安全提示：不信任 = 扩展不加载 = CodeRoad 不激活，",
         "//trust4": "CODEROAD_TUTORIAL_URL 那段逻辑也就永远不会被走到。详见 README。",
-        "//coderoad": "保存文件时自动跑判题。这个开关由环境变量 CODEROAD_DISABLE_RUN_ON_SAVE 控制，",
-        "//coderoad2": "不设就等于开启，所以下面这条只是个显式声明，改它不起作用",
+        "//coderoad": "保存即判题是扩展的内置行为：只要没有环境变量 CODEROAD_DISABLE_RUN_ON_SAVE=true，",
+        "//coderoad2": "CodeRoad 就会 onDidSaveTextDocument → coderoad.run_test。",
+        "//coderoad3": "注意 coderoad.runTestsOnSave 这个键在 0.17.2 源码里不存在（grep 为 0），",
+        "//coderoad4": "写它没有任何效果，下面这行只是给维护者看的说明性标记",
         "coderoad.runTestsOnSave": true
       }
     }

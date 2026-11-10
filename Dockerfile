@@ -63,18 +63,20 @@ RUN curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-l
 # 只装到 /opt/coderoad-deps，不碰工作区（工作区在运行时是挂载卷，镜像里写不进去）。
 # postCreate 会把这些文件 cp 到 coderoad/node_modules，学生不需要联网 npm install。
 #
-# 注意 coderoad/package-lock.json 里的 resolved 指向 registry.npmmirror.com（国内镜像）。
-# Codespaces 的构建机在境外，那个镜像可能连不上；所以第一条命令失败后，
-# 删掉锁文件用官方 registry 重解一次 —— 构建不能因为镜像源挂掉就整体失败。
-# 这里删的是镜像里的副本，不会动仓库里的 package-lock.json。
+# coderoad/package-lock.json 里 74 条 resolved 全部指向 registry.npmmirror.com（国内镜像）。
+# 实测（npm 11，清空 cache）：npm ci 会**直接信任锁文件里的 resolved URL**，不理会 --registry；
+# 那个域名在 Codespaces 构建机上不可达时，npm ci 直接失败。
+# 所以不能只靠"失败再重试"——先把 resolved 的主机名改写成官方 registry，
+# 再跑 npm ci。锁文件里的 integrity 是内容哈希、与镜像源无关，因此改写主机是安全的。
+# 注意：改写只发生在镜像里的副本，仓库里的 package-lock.json 不动。
 WORKDIR /opt/coderoad-deps
 COPY coderoad/package.json coderoad/package-lock.json ./
-RUN npm ci --omit=dev --no-audit --no-fund \
- || ( rm -rf node_modules package-lock.json \
-      && npm install --omit=dev --no-audit --no-fund \
-           --registry=https://registry.npmjs.org )
-# oracle 用户要能读；X 保留 .bin 下已有的执行位
-RUN chmod -R a+rX /opt/coderoad-deps
+RUN sed -i 's#https://registry\.npmmirror\.com#https://registry.npmjs.org#g' package-lock.json \
+ && ( npm ci --omit=dev --no-audit --no-fund \
+      || ( rm -rf node_modules package-lock.json \
+           && npm install --omit=dev --no-audit --no-fund \
+                --registry=https://registry.npmjs.org ) ) \
+ && node -e "require.resolve('mocha'); require.resolve('oracledb'); console.log('deps ok')"
 
 # --- 建库初始化 -------------------------------------------------------------
 # gvenzl/oracle-free 的 entrypoint 在"首次建库 + APP_USER 建好之后"按文件名顺序执行
@@ -96,6 +98,29 @@ RUN chmod 755 /container-entrypoint-initdb.d/10_db_setup.sh /opt/course/dbSetup.
  && chmod 644 /opt/course/baseline/00_baseline.sql \
  && mkdir -p /tmp/dump \
  && chmod 777 /tmp/dump
+
+# --- 构建期自检（fail fast）--------------------------------------------------
+# 这是"容器能不能用"的最低前提。任何一项缺失都在 docker build 阶段报错，
+# 而不是让 Codespaces 建出一个起不来的容器、学生看到 recovery mode 再去猜。
+# 每项对应一个真实故障：
+#   node/npm    → 判题器跑不起来
+#   git         → CodeRoad 配课 `git ls-remote` 失败，进不了课程
+#   initdb 脚本 → TESTER / 基线不会被创建
+#   /tmp/dump   → 实验四 expdp/impdp 失败
+# bash -n 顺带验语法：CRLF 或拼错会在这里暴露，而不是开机时炸掉整个容器。
+RUN set -eux; \
+    command -v node && node -v; \
+    command -v npm  && npm -v; \
+    command -v git  && git --version; \
+    test -s /container-entrypoint-initdb.d/10_db_setup.sh; \
+    test -s /opt/course/baseline/00_baseline.sql; \
+    test -d /tmp/dump; \
+    bash -n /container-entrypoint-initdb.d/10_db_setup.sh; \
+    bash -n /opt/course/dbSetup.sh; \
+    if grep -q $'\r' /opt/course/dbSetup.sh; then \
+      echo "ERROR: initdb 脚本含 CRLF，进容器会报 '\\r: command not found'" >&2; exit 1; \
+    fi; \
+    echo "build self-check ok"
 
 # --- 自动开课用的环境变量 ---------------------------------------------------
 # CodeRoad 在扩展宿主进程里读 process.env.CODEROAD_TUTORIAL_URL（模块加载时读一次）。
