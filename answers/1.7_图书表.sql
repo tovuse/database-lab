@@ -1,3 +1,4 @@
+-- 1.7 标准答案：建 图书 表（只建结构，不发 INSERT）
 CREATE TABLE 图书 (
   图书编号 CHAR(7)      NOT NULL,
   ISBN     VARCHAR2(13) NOT NULL,

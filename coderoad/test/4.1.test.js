@@ -1,67 +1,45 @@
 const assert = require('node:assert');
 const {
   closeAll,
-  parsePumpCommand,
-  runPump,
-  dumpFileExists,
-  readDumpLog,
-  loadCourseBaseline,
-  assertCourseTable,
-  scalarAsCourse,
-  cleanDumpFiles,
+  parsePumpCommandLoose,
 } = require('./utils');
 
 /**
- * 4.1 用 expdp 导出「预约」表
+ * 4.1 写出 expdp 命令的骨架
  *
- * 判题流程：
- *   1. 重建 COURSE 基线（保证 预约 表在、有 1 行）
- *   2. 解析学生文件里的 expdp 参数（只取参数，不盲跑 shell）
- *   3. 用这些参数真的跑一次 expdp
- *   4. 断言：转储文件有内容、日志里写了 successfully completed、导的确实是 预约
+ * 只做语法检查，不真的跑 expdp：
+ * 这一步的命令本来就缺 DUMPFILE / TABLES，跑起来必然报错，
+ * 教学目标是「记住 expdp + 连接串 + DIRECTORY 这个开头」。
  */
-describe('4.1 用 expdp 导出预约表', () => {
+describe('4.1 写 expdp 命令骨架', () => {
   let parsed;
 
   before(async () => {
-    await loadCourseBaseline();
-    parsed = parsePumpCommand('sql/4.1_导出预约表.sh', 'expdp');
-    // 清掉上一次的产物，确保看到的是学生这次导出来的文件
-    cleanDumpFiles(parsed.params.DUMPFILE.replace(/\.dmp$/, ''));
-    cleanDumpFiles(parsed.params.LOGFILE.replace(/\.log$/, ''));
-    runPump(parsed);
+    parsed = parsePumpCommandLoose('sql/4.1_导出骨架.sh', 'expdp');
   });
 
   after(async () => {
     await closeAll();
   });
 
-  it('命令应指定 TABLES=预约', async () => {
-    const tables = (parsed.params.TABLES || '').toUpperCase();
-    assert.ok(
-      tables.includes('预约'),
-      `TABLES 是「${parsed.params.TABLES || '(空)'}」，要求导出 预约 表 → 检查：TABLES=预约 有没有写`
+  it('应写出一条 expdp 命令', async () => {
+    assert.strictEqual(
+      String(parsed.kind).toLowerCase(), 'expdp',
+      `解析到的命令是「${parsed.kind}」→ 检查：这一关要用 expdp（导出），不是 impdp`
     );
   });
 
-  it('转储文件应该真的生成了', async () => {
+  it('应带 COURSE 的连接串', async () => {
     assert.ok(
-      dumpFileExists(parsed.params.DUMPFILE),
-      `DUMPDIR 里没有 ${parsed.params.DUMPFILE} → 检查：DUMPFILE 名字、DIRECTORY 是否写对`
+      /^COURSE\//i.test(parsed.connection || ''),
+      `连接串是「${parsed.connection || '(空)'}」→ 检查：expdp 后面紧跟 COURSE/course@//localhost:1521/FREEPDB1（用户名/密码@主机:端口/服务名）`
     );
   });
 
-  it('导出日志应显示成功', async () => {
-    const log = readDumpLog(parsed.params.LOGFILE);
-    assert.ok(
-      /successfully completed/i.test(log),
-      `日志里没有 "successfully completed" → 打开 /tmp/dump/${parsed.params.LOGFILE} 看具体报错`
+  it('应写 DIRECTORY=DUMPDIR', async () => {
+    assert.strictEqual(
+      String(parsed.params.DIRECTORY || '').toUpperCase(), 'DUMPDIR',
+      `DIRECTORY 是「${parsed.params.DIRECTORY || '(空)'}」→ 检查：目录对象名字是 DUMPDIR（不是 /tmp/dump 这种路径）`
     );
-  });
-
-  it('预约表此时应还在（导出不删源表）', async () => {
-    await assertCourseTable('预约');
-    const n = await scalarAsCourse(`SELECT COUNT(*) FROM 预约`);
-    assert.strictEqual(Number(n), 1, `预约 表现在有 ${n} 行，基线应为 1 行`);
   });
 });

@@ -1,10 +1,7 @@
 const assert = require('node:assert');
-const {
-  resetSchema, replay, assertTable, assertColumn, assertConstraint,
-  expectError, closeAll,
-} = require('./utils');
+const { resetSchema, replay, assertTable, assertColumn, assertConstraint, expectError, closeAll } = require('./utils');
 
-describe('1.5 建罚款分类表', () => {
+describe('1.5 建「罚款分类」表', () => {
   before(async () => {
     await resetSchema();
     await replay('sql/1.5_罚款分类.sql');
@@ -13,8 +10,8 @@ describe('1.5 建罚款分类表', () => {
 
   it('应有 罚款分类 表和三个列', async () => {
     await assertTable('罚款分类');
-    await assertColumn('罚款分类', '罚款分类号');
-    await assertColumn('罚款分类', '罚款名称');
+    await assertColumn('罚款分类', '罚款分类号', 'NUMBER');
+    await assertColumn('罚款分类', '罚款名称', 'VARCHAR2');
     await assertColumn('罚款分类', '罚金', 'NUMBER');
   });
 

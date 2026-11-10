@@ -5,56 +5,71 @@ const {
   resetSecurityObjects,
   replayAsCourse,
   queryAsCourse,
+  scalarAsCourse,
 } = require('./utils');
 
 /**
- * 4.12 建 PROFILE（3 次失败锁定，10 天解锁）
+ * 4.12 建用户并授 CONNECT/RESOURCE
  *
- * 判题：查 dba_profiles 的两个参数值。
- *
- * 为什么不真的连续失败登录 3 次：
- *   预研实测这条路径确实可行（3 次失败后 account_status 变成 LOCKED(TIMED)），
- *   但它会把学生自己刚建的用户锁住、要额外解锁，且每次判题都会污染审计记录。
- *   这一关的教学目标是"会用 PROFILE 配置安全策略"，断言参数值即可。
- *   讲义里如实说明了这个取舍。
+ * 用户名取「姓名拼音」：讲义里固定用 zhangwei，
+ * 判题不锁死拼音——只要求「不是 COURSE、不是 TESTER 的新建用户」，
+ * 并且它确实拿到了 CONNECT 和 RESOURCE 两个角色。
  */
-describe('4.12 建 PROFILE 限时锁定', () => {
+describe('4.12 建用户并授予 CONNECT/RESOURCE', () => {
+  let newUser;
+
   before(async () => {
-    await resetSecurityObjects({ users: [], roles: [], profiles: ['限时锁定'] });
+    await resetSecurityObjects({ users: ['ZHANGWEI'], roles: [], profiles: [] });
     await loadCourseBaseline();
-    await replayAsCourse('sql/4.12_建PROFILE.sql');
+    await replayAsCourse('sql/4.12_建用户并授权.sql');
+
+    // 找出学生新建的那个用户（讲义要求叫 zhangwei）
+    const rows = await queryAsCourse(
+      `SELECT username FROM dba_users WHERE username = 'ZHANGWEI'`
+    );
+    newUser = rows.length ? rows[0][0] : null;
   });
 
   after(async () => {
     await closeAll();
   });
 
-  it('PROFILE 限时锁定 应存在', async () => {
-    const n = (await queryAsCourse(
-      `SELECT profile FROM dba_profiles WHERE profile = '限时锁定'`
-    )).length;
-    assert.ok(n > 0, '没找到 PROFILE 限时锁定 → 检查：CREATE PROFILE 有没有执行成功');
-  });
-
-  it('FAILED_LOGIN_ATTEMPTS 应为 3', async () => {
-    const rows = await queryAsCourse(`
-      SELECT limit FROM dba_profiles
-       WHERE profile = '限时锁定' AND resource_name = 'FAILED_LOGIN_ATTEMPTS'`);
-    const v = rows.length ? String(rows[0][0]) : null;
-    assert.strictEqual(
-      v, '3',
-      `FAILED_LOGIN_ATTEMPTS 是 ${v}，应为 3 → 检查：LIMIT FAILED_LOGIN_ATTEMPTS 3`
+  it('应创建用户 ZHANGWEI', async () => {
+    assert.ok(
+      newUser,
+      `没找到用户 ZHANGWEI → 检查：CREATE USER zhangwei IDENTIFIED BY ...; 有没有执行成功`
     );
   });
 
-  it('PASSWORD_LOCK_TIME 应为 10', async () => {
-    const rows = await queryAsCourse(`
-      SELECT limit FROM dba_profiles
-       WHERE profile = '限时锁定' AND resource_name = 'PASSWORD_LOCK_TIME'`);
-    const v = rows.length ? String(rows[0][0]) : null;
+  it('应授予 CONNECT 角色', async () => {
+    const rows = await queryAsCourse(
+      `SELECT granted_role FROM dba_role_privs WHERE grantee = 'ZHANGWEI'`
+    );
+    const roles = rows.map((r) => String(r[0]).toUpperCase());
+    assert.ok(
+      roles.includes('CONNECT'),
+      `角色是 [${roles.join(', ')}]，缺 CONNECT → 检查：GRANT CONNECT TO zhangwei;`
+    );
+  });
+
+  it('应授予 RESOURCE 角色', async () => {
+    const rows = await queryAsCourse(
+      `SELECT granted_role FROM dba_role_privs WHERE grantee = 'ZHANGWEI'`
+    );
+    const roles = rows.map((r) => String(r[0]).toUpperCase());
+    assert.ok(
+      roles.includes('RESOURCE'),
+      `角色是 [${roles.join(', ')}]，缺 RESOURCE → 检查：GRANT RESOURCE TO zhangwei;（可以和 CONNECT 写在一起）`
+    );
+  });
+
+  it('用户状态应为 OPEN（不是锁定/过期）', async () => {
+    const s = await scalarAsCourse(
+      `SELECT account_status FROM dba_users WHERE username = 'ZHANGWEI'`
+    );
     assert.strictEqual(
-      v, '10',
-      `PASSWORD_LOCK_TIME 是 ${v}，应为 10 → 检查：LIMIT PASSWORD_LOCK_TIME 10`
+      String(s), 'OPEN',
+      `账号状态是「${s}」，应为 OPEN → 检查：建用户时有没有指定了奇怪的 PROFILE`
     );
   });
 });

@@ -1,0 +1,8 @@
+-- 3.12 标准答案：借阅 INSERT 触发器
+CREATE OR REPLACE TRIGGER 触发器_借书
+AFTER INSERT ON 借阅
+FOR EACH ROW
+BEGIN
+  UPDATE 图书 SET 是否借出 = '是' WHERE 图书编号 = :NEW.图书编号;
+END;
+/

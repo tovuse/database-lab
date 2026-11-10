@@ -1,31 +1,35 @@
 const assert = require('node:assert');
-const {
-  resetSchema, replayAll, replay, query, scalar, closeAll,
-} = require('./utils');
+const { resetSchema, replayAll, replay, assertRowCount, query, closeAll } = require('./utils');
 
-describe('1.12 数据的增删改', () => {
+describe('1.12 插入「图书分类」数据（3 行）', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('sql/1.12_增删改.sql');
+    await replayAll([
+      'answers/1.3_图书分类.sql', 'answers/1.4_图书分类主键.sql',
+    ]);
+    await replay('sql/1.12_插图书分类.sql');
   });
   after(async () => { await closeAll(); });
 
-  it('分类 400 应已被删除（增删改三步都执行了）', async () => {
-    const n = await scalar(
-      `SELECT COUNT(*) FROM 图书分类 WHERE 图书分类号 = '400'`
-    );
-    assert.ok(
-      n === 0,
-      '分类 400 还在 → 检查：INSERT 之后有没有 UPDATE 再 DELETE'
-    );
+  it('「图书分类」应有 3 行', async () => {
+    await assertRowCount('图书分类', 3);
   });
 
-  it('原有三个分类不应被误删', async () => {
-    const n = await scalar(`SELECT COUNT(*) FROM 图书分类`);
-    assert.strictEqual(
-      Number(n), 3,
-      `图书分类 现在有 ${n} 行，应为 3 → 检查：DELETE 有没有加 WHERE 图书分类号='400'`
+  it('三个分类号与类名应和指导书一致', async () => {
+    const rows = await query(
+      `SELECT 图书分类号, 类名 FROM 图书分类 ORDER BY 图书分类号`
     );
+    const expected = [['100', '文学'], ['200', '科技'], ['300', '哲学']];
+    assert.strictEqual(
+      rows.length, expected.length,
+      `查到 ${rows.length} 行，应为 ${expected.length} 行 → 检查：是否漏插或重复插入`
+    );
+    for (let i = 0; i < expected.length; i++) {
+      const got = [String(rows[i][0]).trim(), String(rows[i][1]).trim()];
+      assert.deepStrictEqual(
+        got, expected[i],
+        `第 ${i + 1} 行是 ${JSON.stringify(got)}，应为 ${JSON.stringify(expected[i])} → 检查：分类号和类名是否一一对应`
+      );
+    }
   });
 });

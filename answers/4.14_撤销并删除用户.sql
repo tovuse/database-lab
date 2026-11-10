@@ -1,3 +1,0 @@
--- 4.14 标准答案：撤销权限、删除用户
-REVOKE SELECT ON VIEW_READER FROM 用户_USER1;
-DROP USER 用户_USER1;

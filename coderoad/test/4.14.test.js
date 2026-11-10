@@ -2,72 +2,63 @@ const assert = require('node:assert');
 const {
   closeAll,
   loadCourseBaseline,
-  resetSecurityObjects,
-  replayAsCourse,
+  runMultiQueryFileAsCourse,
   queryAsCourse,
-  scalarAsCourse,
-  execAsCourse,
 } = require('./utils');
 
 /**
- * 4.14 撤销权限并删除用户
+ * 4.14 查系统权限（user_sys_privs，也接受 dba_sys_privs）
  *
- * 判题：
- *   1. 判题器先造好 用户_USER1 + 视图 + 授权（模拟 4.11 的成果）
- *   2. 跑学生的 REVOKE + DROP USER
- *   3. 断言：用户不存在了，该用户的授权记录也级联消失
+ * 判据（与环境无关）：查的是系统权限字典，行数与该视图一致。
+ * COURSE 的系统权限来自 initdb 的 GRANT（CREATE USER / ALTER USER / …），
+ * 不同环境条数不同，所以不硬比具体权限名。
  */
-describe('4.14 撤销权限并删除用户', () => {
+describe('4.14 查系统权限', () => {
+  let results;
+  let expected;
+  let hit;
+  let isDba;
+
   before(async () => {
-    await resetSecurityObjects({
-      users: ['用户_USER1'],
-      roles: [],
-      profiles: [],
-      views: ['VIEW_READER'],
-    });
     await loadCourseBaseline();
-    await replayAsCourse('answers/4.10_建视图.sql');
-
-    // 造起点：用户 + 授权
-    await execAsCourse(
-      `BEGIN EXECUTE IMMEDIATE 'CREATE USER 用户_USER1 IDENTIFIED BY view2026'; END;`
+    results = await runMultiQueryFileAsCourse('sql/4.14_查系统权限.sql');
+    hit = results.find((r) => /(user|dba)_sys_privs/i.test(r.sql));
+    isDba = hit ? /\bdba_sys_privs\b/i.test(hit.sql) : false;
+    expected = await queryAsCourse(
+      isDba ? 'SELECT * FROM dba_sys_privs' : 'SELECT * FROM user_sys_privs'
     );
-    await execAsCourse('GRANT CONNECT TO 用户_USER1');
-    await execAsCourse('GRANT SELECT ON VIEW_READER TO 用户_USER1');
-
-    await replayAsCourse('sql/4.14_撤销并删除用户.sql');
   });
 
   after(async () => {
     await closeAll();
   });
 
-  it('用户 用户_USER1 应已被删除', async () => {
-    const n = await scalarAsCourse(
-      `SELECT COUNT(*) FROM dba_users WHERE username = '用户_USER1'`
-    );
-    assert.strictEqual(
-      Number(n), 0,
-      '用户 用户_USER1 还在 → 检查：DROP USER 用户_USER1;（如果有对象要先 CASCADE）'
+  it('应查系统权限字典（user_sys_privs）', async () => {
+    assert.ok(
+      hit,
+      '没找到查 user_sys_privs 的语句 → 检查：系统权限（CREATE USER 这类）在 user_sys_privs，别和角色（user_role_privs）搞混'
     );
   });
 
-  it('该用户的权限记录应级联消失', async () => {
-    const n = await scalarAsCourse(`
-      SELECT COUNT(*) FROM dba_tab_privs WHERE grantee = '用户_USER1'`);
+  it('查出来的行数应与该视图一致', async () => {
     assert.strictEqual(
-      Number(n), 0,
-      `还有 ${n} 条对象权限残留 → 检查：DROP USER 之后权限应自动消失；如果没消失说明用户没真删掉`
+      hit.rows.length,
+      expected.length,
+      `查出 ${hit.rows.length} 行，${isDba ? 'dba_sys_privs' : 'user_sys_privs'} 里实际有 ${
+        expected.length
+      } 行 → 检查：是不是查成了 user_role_privs`
     );
   });
 
-  it('视图 VIEW_READER 本身不该被删（只撤授权）', async () => {
-    const n = await scalarAsCourse(
-      `SELECT COUNT(*) FROM user_views WHERE view_name = 'VIEW_READER'`
-    );
-    assert.strictEqual(
-      Number(n), 1,
-      'VIEW_READER 不见了 → 检查：REVOKE 只撤授权，不该 DROP VIEW'
+  it('结果里应能看到权限名', async () => {
+    const flat = hit.rows.map((r) => r.map((v) => String(v || '')).join(' '));
+    const missing = expected
+      .map((r) => String(r[0] || '').trim())
+      .filter((priv) => priv && !flat.some((s) => s.includes(priv)));
+    assert.deepStrictEqual(
+      missing,
+      [],
+      `结果里缺这些权限：${missing.join('、')} → 检查：SELECT 的列里是不是漏了权限名（PRIVILEGE）`
     );
   });
 });

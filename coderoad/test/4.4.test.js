@@ -7,31 +7,36 @@ const {
 } = require('./utils');
 
 /**
- * 4.4 让「预约」表支持闪回
- * 判题：重放基线 → 跑学生 4.4 → 断言 user_tables.row_movement = 'ENABLED'
+ * 4.4 删掉「预约」表
+ * 判题：重放基线 → 跑学生这一关 → 断言 预约 不存在了，而且别的表没被误删。
  */
-describe('4.4 开启行移动', () => {
+describe('4.4 删掉预约表', () => {
   before(async () => {
     await loadCourseBaseline();
-    await replayAsCourse('sql/4.4_开启行移动.sql');
+    await replayAsCourse('sql/4.4_删表.sql');
   });
 
   after(async () => {
     await closeAll();
   });
 
-  it('预约 表的 row_movement 应为 ENABLED', async () => {
-    const v = await scalarAsCourse(
-      `SELECT row_movement FROM user_tables WHERE table_name = '预约'`
+  it('预约 表应已被删除', async () => {
+    const n = await scalarAsCourse(
+      `SELECT COUNT(*) FROM user_tables WHERE table_name = '预约'`
     );
     assert.strictEqual(
-      String(v).toUpperCase(), 'ENABLED',
-      `row_movement 是「${v}」，应为 ENABLED → 检查：是否写了 ALTER TABLE 预约 ENABLE ROW MOVEMENT;`
+      Number(n), 0,
+      '预约 表还在 → 检查：DROP TABLE 预约 CASCADE CONSTRAINTS; 有没有写、有没有执行成功'
     );
   });
 
-  it('表本身应该还在（ENABLE 不是重建表）', async () => {
-    const n = await scalarAsCourse(`SELECT COUNT(*) FROM 预约`);
-    assert.strictEqual(Number(n), 1, `预约 现在有 ${n} 行，基线应为 1 行`);
+  it('别的表不应被误删', async () => {
+    const n = await scalarAsCourse(
+      `SELECT COUNT(*) FROM user_tables WHERE table_name = '书目'`
+    );
+    assert.strictEqual(
+      Number(n), 1,
+      '书目 表也不见了 → 检查：这一关只删 预约，不要 DROP USER 或 DROP 别的表'
+    );
   });
 });

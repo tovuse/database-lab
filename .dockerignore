@@ -1,0 +1,26 @@
+# 构建课程镜像时不需要的东西。
+# 不加这个文件，仓库里的 node_modules、.git 和报告文档都会进构建上下文，
+# 每次改一行 Dockerfile 都要重传几百 MB。
+.git
+.github
+node_modules
+coderoad/node_modules
+*.log
+.tmp
+.DS_Store
+
+# 课程内容与文档：镜像只需要 coderoad 的两个清单文件 + answers 里的基线 SQL
+TUTORIAL.md
+coderoad.yaml
+tutorial.json
+README.md
+CodeRoad*.docx
+make_templates.py
+sql
+scripts
+
+# 注意：这里用 answers/* 而不是 answers。
+# Docker 的规则是"父目录被整体排除后，里面的文件无法再用 ! 加回来"，
+# 所以必须只排除目录内容，才能把基线 SQL 单独留下。
+answers/*
+!answers/00_基线.sql

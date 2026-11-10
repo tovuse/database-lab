@@ -1,16 +1,17 @@
 {
   "name": "数据库原理及应用 · 实验课",
-  "image": "gvenzl/oracle-free:23-slim",
 
-  "//": "不要覆盖镜像 CMD，否则 Oracle 不会启动",
+  "//": "不再用 image 直连：课程镜像已预装 Node 20、判题依赖和建库初始化脚本，见仓库根的 Dockerfile",
+  "//build": "dockerfile / context 都相对于 .devcontainer 目录。context 必须是仓库根——Dockerfile 要 COPY coderoad/ 和 answers/",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": ".."
+  },
+
+  "//cmd": "不要覆盖镜像 CMD，否则 Oracle 不会启动",
   "overrideCommand": false,
 
-  "//node": "这个 Oracle 镜像不含 Node.js，判题器必须靠 feature 装进来",
-  "features": {
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "20"
-    }
-  },
+  "//node": "Node 20 已烘进镜像，删掉了原来的 devcontainers/features/node —— 少一次联网安装，少一个失败点",
 
   "hostRequirements": {
     "cpus": 2,
@@ -18,12 +19,17 @@
     "storage": "32gb"
   },
 
+  "//containerEnv": "containerEnv 是创建容器时传给 docker run -e 的，Oracle 的 entrypoint 必须靠它拿到密码和 APP_USER",
   "containerEnv": {
     "ORACLE_PASSWORD": "oracle",
     "APP_USER": "COURSE",
     "APP_USER_PASSWORD": "course",
-    "CODEROAD_TUTORIAL_URL": "https://raw.githubusercontent.com/tovuse/database-lab/main/tutorial.json",
     "NLS_LANG": "AMERICAN_AMERICA.AL32UTF8"
+  },
+
+  "//remoteEnv": "remoteEnv 才是 VS Code 侧读取的那一路（扩展宿主/终端/任务），CodeRoad 在扩展宿主进程里读 CODEROAD_TUTORIAL_URL。镜像里还有一份 ENV 兜底，两层都设",
+  "remoteEnv": {
+    "CODEROAD_TUTORIAL_URL": "https://raw.githubusercontent.com/tovuse/database-lab/main/tutorial.json"
   },
 
   "customizations": {
@@ -39,9 +45,11 @@
         "files.eol": "\n",
 
         "//trust": "注意：security.workspace.trust.enabled 在这里设了也没用——",
-        "//trust2": "它是机器/用户级设置，工作区配置覆盖不了。信任弹窗只能学生手动点一次，",
-        "//trust3": "详见 README 的「打开后只需要做一件事：点信任」。",
-        "//coderoad": "保存即判题，学生不用每次点 Run",
+        "//trust2": "它是机器/用户级设置，工作区配置覆盖不了。信任弹窗只能学生手动点一次。",
+        "//trust3": "而且这一下不只是安全提示：不信任 = 扩展不加载 = CodeRoad 不激活，",
+        "//trust4": "CODEROAD_TUTORIAL_URL 那段逻辑也就永远不会被走到。详见 README。",
+        "//coderoad": "保存文件时自动跑判题。这个开关由环境变量 CODEROAD_DISABLE_RUN_ON_SAVE 控制，",
+        "//coderoad2": "不设就等于开启，所以下面这条只是个显式声明，改它不起作用",
         "coderoad.runTestsOnSave": true
       }
     }
@@ -49,6 +57,9 @@
 
   "forwardPorts": [1521],
 
+  "//postCreate": "只剩幂等兜底：等库就绪、确认 Node/判题依赖/基线，缺什么补什么，并打印自动开课所需的变量",
   "postCreateCommand": "bash scripts/postCreate.sh",
+
+  "//postStart": "停止再启动 codespace 时 Oracle 要几十秒才可连，判题前先等它",
   "postStartCommand": "bash scripts/waitForDb.sh"
 }

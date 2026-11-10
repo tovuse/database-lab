@@ -1,47 +1,33 @@
 const assert = require('node:assert');
-const {
-  resetSchema, replay, exec, assertConstraint, expectError, closeAll,
-} = require('./utils');
+const { resetSchema, replayAll, replay, assertRowCount, query, closeAll } = require('./utils');
 
-describe('1.13 完整性约束扩展', () => {
+describe('1.13 插入「罚款分类」数据（3 行）', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('sql/1.13_完整性扩展.sql');
+    await replayAll([
+      'answers/1.5_罚款分类.sql',
+    ]);
+    await replay('sql/1.13_插罚款分类.sql');
   });
   after(async () => { await closeAll(); });
 
-  it('读者表应有电话和身份证两条 CHECK', async () => {
-    await assertConstraint('读者', 'C', '联系电话');
-    await assertConstraint('读者', 'C', '身份证编号');
+  it('「罚款分类」应有 3 行', async () => {
+    await assertRowCount('罚款分类', 3);
   });
 
-  it('图书表应有是否借出的 CHECK', async () => {
-    await assertConstraint('图书', 'C', '是否借出');
-  });
-
-  it('插入 10 位电话应被拒绝', async () => {
-    await expectError(
-      `INSERT INTO 读者 (借书证号, 姓名, 联系电话) VALUES ('99999998', '测试', '1234567890')`,
-      'ORA-02290',
-      '电话约束要能拦住非 11 位'
+  it('罚款名称和罚金应和指导书一致', async () => {
+    const rows = await query(
+      `SELECT 罚款分类号, 罚款名称, 罚金 FROM 罚款分类 ORDER BY 罚款分类号`
     );
-  });
-
-  it('插入 17 位身份证应被拒绝', async () => {
-    await expectError(
-      `INSERT INTO 读者 (借书证号, 姓名, 身份证编号) VALUES ('99999997', '测试', '12345678901234567')`,
-      'ORA-02290',
-      '身份证约束要能拦住非 18 位'
-    );
-  });
-
-  it('借书日期为空应被拒绝', async () => {
-    await expectError(
-      `INSERT INTO 借阅 (借阅流水号, 借书证号, 图书编号, 借书日期)
-       VALUES (901, '20051001', '1005050', NULL)`,
-      'ORA-01400',
-      '借阅.借书日期 要改成 NOT NULL（ALTER TABLE 借阅 MODIFY (借书日期 NOT NULL)）'
-    );
+    const expected = [[1, '延期', 10], [2, '损坏', 20], [3, '丢失', 50]];
+    assert.strictEqual(rows.length, expected.length,
+      `查到 ${rows.length} 行，应为 ${expected.length} 行 → 检查：是否漏插或重复插入`);
+    for (let i = 0; i < expected.length; i++) {
+      const got = [Number(rows[i][0]), String(rows[i][1]).trim(), Number(rows[i][2])];
+      assert.deepStrictEqual(
+        got, expected[i],
+        `第 ${i + 1} 行是 ${JSON.stringify(got)}，应为 ${JSON.stringify(expected[i])} → 检查：分类号、罚款名称、罚金（10/20/50）`
+      );
+    }
   });
 });

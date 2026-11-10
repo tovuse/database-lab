@@ -1,0 +1,11 @@
+-- 3.1 写出「借书」存储过程的骨架
+-- 目标：建一个叫 借书 的过程，三个输入参数（借阅流水号、借书证号、图书编号），
+-- 过程体暂时什么都不做，用 NULL; 占位。
+-- 语法骨架：
+--   CREATE OR REPLACE PROCEDURE 过程名 (参数名 类型, ...) IS
+--   BEGIN
+--     NULL;
+--   END;
+--   /            ← PL/SQL 块用单独一行的 / 结束，不是分号
+
+-- TODO 在下面写 CREATE OR REPLACE PROCEDURE 借书 的骨架

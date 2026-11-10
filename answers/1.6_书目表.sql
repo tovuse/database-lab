@@ -1,3 +1,4 @@
+-- 1.6 标准答案：建 书目 表（含外键）
 CREATE TABLE 书目 (
   ISBN       VARCHAR2(13) NOT NULL,
   书名       VARCHAR2(60) NOT NULL,

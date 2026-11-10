@@ -867,14 +867,19 @@ async function tryLogin(user, password, sql = 'SELECT 1 FROM dual') {
 }
 
 /**
- * 从学生的 .sh/.sql 里解析出 expdp/impdp 的参数。
- * 为什么解析而不是直接 bash 执行学生文件：
- *   判题进程不应该盲目执行学生写的任意 shell。
- *   这里只接受 expdp/impdp 一行命令 + KEY=VALUE 形式的参数，
- *   其余内容（管道、重定向、其他命令）一律拒绝。
- * @returns {{kind:string, params:Object}} params 键为大写
+ * 把学生的 .sh/.sql 里的 expdp/impdp 命令拼成一条逻辑行，并切出参数。
+ *
+ * 这是「宽松版」：只做语法解析，不校验参数是否齐全。
+ * 为什么需要宽松版：实验四被拆成了「先写骨架，再补文件名，最后补导什么」的几步，
+ * 中间步骤的命令本来就是不完整的（没有 DUMPFILE/LOGFILE/TABLES），
+ * 用严格版会在解析阶段就抛「缺少参数」，那一步永远判不了。
+ *
+ * 安全约束和严格版一致：只接受一条 expdp/impdp 命令 + KEY=VALUE 参数，
+ * 出现管道、重定向、分号等 shell 特殊符号一律拒绝。
+ *
+ * @returns {{kind:string, params:Object, connection:string, raw:string}} params 键为大写
  */
-function parsePumpCommand(relPath, kind) {
+function parsePumpCommandLoose(relPath, kind) {
   const file = path.join(WORKSPACE, relPath);
   if (!fs.existsSync(file)) {
     throw new Error(`没找到文件 ${relPath} → 检查：文件名是否拼错、是否保存过`);
@@ -911,17 +916,36 @@ function parsePumpCommand(relPath, kind) {
 
   const tokens = line.split(/\s+/).slice(1);
   const params = {};
+  let connection = '';
   for (const t of tokens) {
     const m = /^([A-Za-z_]+)=(.*)$/.exec(t);
     if (!m) {
       // 连接串（COURSE/course@//host:port/service）允许出现，其余裸参数报警
-      if (t.includes('/') || t.includes('@')) continue;
+      if (t.includes('/') || t.includes('@')) {
+        if (!connection) connection = t;
+        continue;
+      }
       throw new Error(
         `看不懂这个参数：「${t}」→ 检查：参数要写成 名字=值 的形式，例如 DIRECTORY=DUMPDIR`
       );
     }
     params[m[1].toUpperCase()] = m[2];
   }
+
+  return { kind, params, connection, raw: line };
+}
+
+/**
+ * 从学生的 .sh/.sql 里解析出 expdp/impdp 的参数（完整版）。
+ * 为什么解析而不是直接 bash 执行学生文件：
+ *   判题进程不应该盲目执行学生写的任意 shell。
+ *   这里只接受 expdp/impdp 一行命令 + KEY=VALUE 形式的参数，
+ *   其余内容（管道、重定向、其他命令）一律拒绝。
+ * @returns {{kind:string, params:Object}} params 键为大写
+ */
+function parsePumpCommand(relPath, kind) {
+  const parsed = parsePumpCommandLoose(relPath, kind);
+  const params = parsed.params;
 
   const need = ['DIRECTORY', 'DUMPFILE', 'LOGFILE'];
   for (const k of need) {
@@ -1016,7 +1040,9 @@ module.exports = {
   callProcedure,
   expectCallError,
   runDataPump,
-  readDumpLog,
+  parsePumpCommand,
+  parsePumpCommandLoose,
+  runPump,
   resetSecurityObjects,
   assertDbUser,
   assertGrantedRole,
@@ -1035,7 +1061,6 @@ module.exports = {
   COURSE_CREDS,
   runShellFile,
   tryLogin,
-  parsePumpCommand,
-  runPump,
   dumpFileExists,
+  readDumpLog,
 };

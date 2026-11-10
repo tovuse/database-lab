@@ -1,0 +1,10 @@
+-- 1.11 标准答案：建 预约 表
+CREATE TABLE 预约 (
+  预约流水号 NUMBER(6)    NOT NULL,
+  借书证号   CHAR(8)      NOT NULL,
+  ISBN       VARCHAR2(13) NOT NULL,
+  预约时间   DATE         DEFAULT SYSDATE NOT NULL,
+  CONSTRAINT pk_预约      PRIMARY KEY (预约流水号),
+  CONSTRAINT fk_预约_读者 FOREIGN KEY (借书证号) REFERENCES 读者(借书证号),
+  CONSTRAINT fk_预约_书目 FOREIGN KEY (ISBN)     REFERENCES 书目(ISBN)
+);

@@ -1,61 +1,55 @@
 const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
 const {
   closeAll,
   loadCourseBaseline,
   replayAsCourse,
-  queryAsCourse,
   scalarAsCourse,
+  WORKSPACE,
 } = require('./utils');
 
 /**
- * 4.10 建视图 VIEW_READER
- * 判题：视图存在、三列齐、行数=4（基线 4 本书目）、能查出分类名
+ * 4.10 删掉「预约」表的全部数据
+ * 判题：重放基线 → 跑学生 4.10 → 断言表被清空，且文件里确实有 COMMIT。
+ *
+ * 为什么 COMMIT 要单独检查：判题器重放 SQL 时是自动提交的，
+ * 光看库里有没有数据，分不出学生写没写 COMMIT。
  */
-describe('4.10 建视图 VIEW_READER', () => {
+describe('4.10 删掉预约数据', () => {
   before(async () => {
     await loadCourseBaseline();
-    await replayAsCourse('sql/4.10_建视图.sql');
+    await replayAsCourse('sql/4.10_删预约数据.sql');
   });
 
   after(async () => {
     await closeAll();
   });
 
-  it('视图 VIEW_READER 应存在', async () => {
-    const n = await scalarAsCourse(
-      `SELECT COUNT(*) FROM user_views WHERE view_name = 'VIEW_READER'`
-    );
-    assert.ok(n === 1, '没找到视图 VIEW_READER → 检查：CREATE OR REPLACE VIEW 有没有执行成功');
-  });
-
-  it('应有 ISBN / 书名 / 类名 三列', async () => {
-    const rows = await queryAsCourse(`
-      SELECT column_name FROM user_tab_columns
-       WHERE table_name = 'VIEW_READER' ORDER BY column_id`);
-    const cols = rows.map((r) => String(r[0]).toUpperCase());
-    for (const want of ['ISBN', '书名', '类名']) {
-      assert.ok(
-        cols.includes(want),
-        `视图缺列 ${want}（当前：${cols.join(', ')}）→ 检查：SELECT 里要选出这三列`
-      );
-    }
-  });
-
-  it('应查出 4 行（基线 4 本书目）', async () => {
-    const n = await scalarAsCourse(`SELECT COUNT(*) FROM VIEW_READER`);
+  it('预约表应被清空', async () => {
+    const n = await scalarAsCourse(`SELECT COUNT(*) FROM 预约`);
     assert.strictEqual(
-      Number(n), 4,
-      `视图返回 ${n} 行，应为 4 行 → 检查：连表条件是不是 b.图书分类号 = c.图书分类号`
+      Number(n), 0,
+      `预约 还有 ${n} 行 → 检查：DELETE FROM 预约; 有没有写`
     );
   });
 
-  it('类名应能查出「文学」这类真实值', async () => {
-    const n = await scalarAsCourse(
-      `SELECT COUNT(*) FROM VIEW_READER WHERE 类名 = '文学'`
-    );
+  it('别的表不应被误删', async () => {
+    const n = await scalarAsCourse(`SELECT COUNT(*) FROM 书目`);
+    assert.strictEqual(Number(n), 4, `书目 现在有 ${n} 行，基线应为 4 行 → 检查：只删 预约，别动别的表`);
+  });
+
+  it('文件里应有 COMMIT', async () => {
+    const file = path.join(WORKSPACE, 'sql/4.10_删预约数据.sql');
+    const text = fs.readFileSync(file, 'utf8');
+    // 去掉注释行再找，避免把注释里提到的 COMMIT 当成提交语句
+    const code = text
+      .split('\n')
+      .filter((l) => !l.trim().startsWith('--'))
+      .join('\n');
     assert.ok(
-      Number(n) >= 1,
-      `按 类名='文学' 查不到数据 → 检查：有没有真的连上 图书分类 表`
+      /(^|[^A-Za-z_])COMMIT\s*;/i.test(code),
+      '文件里没看到 COMMIT; → 检查：DELETE 之后要写一条 COMMIT; 把删除真正提交'
     );
   });
 });

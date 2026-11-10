@@ -2,58 +2,64 @@ const assert = require('node:assert');
 const {
   closeAll,
   loadCourseBaseline,
-  resetSecurityObjects,
-  replayAsCourse,
-  scalarAsCourse,
+  runMultiQueryFileAsCourse,
   queryAsCourse,
-  execAsCourse,
-  tryLogin,
 } = require('./utils');
 
 /**
- * 4.13 手工解锁被锁的用户
+ * 4.13 查角色（user_role_privs，也接受 dba_role_privs）
  *
- * 判题：
- *   1. 判题器先把 用户_USER1 锁住（模拟"被 PROFILE 锁了"）
- *   2. 跑学生的 UNLOCK 语句
- *   3. 断言 account_status = OPEN，且真的能登录
+ * 判据（与环境无关）：
+ *   1. 学生确实写了查角色字典的语句
+ *   2. 行数、角色名与该视图一致
+ * 不硬比「至少有某个角色」：不同环境给 COURSE 授的角色不一样，硬写会误判。
  */
-describe('4.13 手工解锁用户', () => {
+describe('4.13 查角色权限', () => {
+  let results;
+  let expected;
+  let hit;
+  let isDba;
+
   before(async () => {
-    await resetSecurityObjects({ users: ['用户_USER1'], roles: [], profiles: [] });
     await loadCourseBaseline();
-
-    // 造一个可解锁的用户；已存在就用现成的
-    await execAsCourse(
-      `BEGIN EXECUTE IMMEDIATE 'CREATE USER 用户_USER1 IDENTIFIED BY view2026'; END;`
-    ).catch(() => {});
-    await execAsCourse('GRANT CONNECT TO 用户_USER1').catch(() => {});
-
-    // 判题器制造起点：账号被锁
-    await execAsCourse('ALTER USER 用户_USER1 ACCOUNT LOCK');
-
-    await replayAsCourse('sql/4.13_手工解锁.sql');
+    results = await runMultiQueryFileAsCourse('sql/4.13_查角色权限.sql');
+    hit = results.find((r) => /(user|dba)_role_privs/i.test(r.sql));
+    isDba = hit ? /\bdba_role_privs\b/i.test(hit.sql) : false;
+    expected = await queryAsCourse(
+      isDba ? 'SELECT * FROM dba_role_privs' : 'SELECT * FROM user_role_privs'
+    );
   });
 
   after(async () => {
     await closeAll();
   });
 
-  it('账号状态应为 OPEN', async () => {
-    const s = await scalarAsCourse(
-      `SELECT account_status FROM dba_users WHERE username = '用户_USER1'`
-    );
-    assert.strictEqual(
-      String(s), 'OPEN',
-      `账号状态是「${s}」，应为 OPEN → 检查：ALTER USER 用户_USER1 ACCOUNT UNLOCK;`
+  it('应查角色字典（user_role_privs）', async () => {
+    assert.ok(
+      hit,
+      '没找到查 user_role_privs 的语句 → 检查：角色要在 user_role_privs 里查（SELECT * FROM user_role_privs;）'
     );
   });
 
-  it('解锁后应能真的登录', async () => {
-    const ok = await tryLogin('用户_USER1', 'view2026');
-    assert.ok(
-      ok,
-      '解锁了但登录失败 → 检查：密码是否被改过；或账号是因为密码过期被锁（那是 PASSWORD_LOCK_TIME 的另一种情况，要用 ALTER USER ... IDENTIFIED BY 重置密码）'
+  it('查出来的行数应与该视图一致', async () => {
+    assert.strictEqual(
+      hit.rows.length,
+      expected.length,
+      `查出 ${hit.rows.length} 行，${isDba ? 'dba_role_privs' : 'user_role_privs'} 里实际有 ${
+        expected.length
+      } 行 → 检查：是不是查成了别的视图（角色 user_role_privs / 系统权限 user_sys_privs / 对象权限 user_tab_privs）`
+    );
+  });
+
+  it('结果里应能看到每个角色名', async () => {
+    const flat = hit.rows.map((r) => r.map((v) => String(v || '')).join(' '));
+    const missing = expected
+      .map((r) => String(r[0] || '').trim())
+      .filter((role) => role && !flat.some((s) => s.includes(role)));
+    assert.deepStrictEqual(
+      missing,
+      [],
+      `结果里缺这些角色：${missing.join('、')} → 检查：SELECT 的列里是不是漏了角色名（GRANTED_ROLE）`
     );
   });
 });

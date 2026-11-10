@@ -2,98 +2,36 @@ const assert = require('node:assert');
 const {
   closeAll,
   loadCourseBaseline,
-  resetSecurityObjects,
   replayAsCourse,
-  queryAsCourse,
   scalarAsCourse,
-  tryLogin,
-  DB,
 } = require('./utils');
+
 /**
- * 4.9 建 用户_oper 授角色，以它身份借书
- *
- * 判题：
- *   1. 用户 用户_OPER 存在
- *   2. 被授予 图书管理员 角色
- *   3. 判题器自己用 用户_oper/oper2026 连库，调 COURSE.借书，断言借阅表多一行
- *
- * 第 3 点是这一关的重点：证明"角色授到过程上"是真的能用，
- * 不是只在字典里躺着一行。
+ * 4.9 让「预约」表支持闪回
+ * 判题：重放基线 → 跑学生 4.9 → 断言 user_tables.row_movement = 'ENABLED'
  */
-describe('4.9 用户 oper 借书', () => {
+describe('4.9 开启行移动', () => {
   before(async () => {
-    await resetSecurityObjects({
-      users: ['用户_OPER'],
-      roles: ['图书管理员'],
-      profiles: [],
-    });
     await loadCourseBaseline();
-    // 过程必须建在 COURSE schema（用户_oper 调的是 COURSE.借书）
-    for (const f of [
-      'answers/3.1_借书过程.sql',
-      'answers/3.3_图书预约过程.sql',
-      'answers/3.4_还书过程.sql',
-      'answers/4.8_建角色.sql',
-    ]) {
-      await replayAsCourse(f);
-    }
-    await replayAsCourse('sql/4.9_用户oper借书.sql');
+    await replayAsCourse('sql/4.9_开启行移动.sql');
   });
 
   after(async () => {
     await closeAll();
   });
 
-  it('用户 用户_OPER 应存在', async () => {
-    const n = (await queryAsCourse(
-      `SELECT username FROM dba_users WHERE username = '用户_OPER'`
-    )).length;
-    assert.ok(n === 1, '没找到用户 用户_OPER → 检查：CREATE USER 用户_oper ... 有没有执行');
-  });
-
-  it('应被授予 图书管理员 角色', async () => {
-    const rows = await queryAsCourse(
-      `SELECT granted_role FROM dba_role_privs WHERE grantee = '用户_OPER'`
+  it('预约 表的 row_movement 应为 ENABLED', async () => {
+    const v = await scalarAsCourse(
+      `SELECT row_movement FROM user_tables WHERE table_name = '预约'`
     );
-    const roles = rows.map((r) => String(r[0]).toUpperCase());
-    assert.ok(
-      roles.includes('图书管理员'.toUpperCase()),
-      `用户拿到的角色是 [${roles.join(', ')}] → 检查：GRANT 图书管理员 TO 用户_oper;`
-    );
-  });
-
-  it('用 用户_oper 登录并调用 COURSE.借书 应成功', async () => {
-    const canLogin = await tryLogin('用户_oper', 'oper2026');
-    assert.ok(
-      canLogin,
-      '用户_oper 登录不了 → 检查：密码是否改过、是否只授了角色没给 CONNECT'
-    );
-
-    const before = Number(await scalarAsCourse(`SELECT COUNT(*) FROM 借阅`));
-
-    // 以 用户_oper 身份调过程（必须带 COURSE. 前缀）
-    const oracledb = require('oracledb');
-    let c;
-    try {
-      c = await oracledb.getConnection({
-        user: '用户_oper',
-        password: 'oper2026',
-        connectString: DB.connectString,
-      });
-      await c.execute(`BEGIN COURSE.借书(9001, '20081237', '2001231'); END;`);
-      await c.commit();
-    } catch (e) {
-      throw new Error(
-        `以 用户_oper 调用借书失败：${(e.message || '').split('\n')[0]}\n  → 检查：过程名要写 COURSE.借书；角色有没有拿到这个过程的 EXECUTE`
-      );
-    } finally {
-      if (c) await c.close().catch(() => {});
-    }
-
-    const after = Number(await scalarAsCourse(`SELECT COUNT(*) FROM 借阅`));
     assert.strictEqual(
-      after, before + 1,
-      `借阅表行数 ${{ before, after }}，调用后没增加 → 检查：过程是否真的执行了（参数顺序对不对）`
+      String(v).toUpperCase(), 'ENABLED',
+      `row_movement 是「${v}」，应为 ENABLED → 检查：是否写了 ALTER TABLE 预约 ENABLE ROW MOVEMENT;`
     );
+  });
+
+  it('表本身应该还在（ENABLE 不是重建表）', async () => {
+    const n = await scalarAsCourse(`SELECT COUNT(*) FROM 预约`);
+    assert.strictEqual(Number(n), 1, `预约 现在有 ${n} 行，基线应为 1 行`);
   });
 });

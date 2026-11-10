@@ -6,32 +6,37 @@ const {
   scalar,
   assertObject,
   assertCompiled,
+  callProcedure,
   closeAll,
 } = require('./utils');
 
 /**
- * 3.2 调用「借书」存储过程
- * 判题：先建好标准答案的 借书 过程，再重放学生这一关的调用语句，断言数据真的变了
+ * 3.2 给「借书」补上 INSERT
+ * 判题：重放基线 → 重放学生的过程 → 真的调一次 → 断言 借阅 表多了一条记录。
+ * 只断言「插入」这一件事：图书状态是下一关才改的。
  */
-describe('3.2 调用借书存储过程', () => {
+describe('3.2 补全借书的插入逻辑', () => {
   before(async () => {
     await resetSchema();
     await replay('answers/00_基线.sql');
-    await replay('answers/3.1_借书过程.sql');   // 前置：标准答案的过程
-    await replay('sql/3.2_调用借书.sql');       // 学生这一关：调用
+    await replay('sql/3.2_借书插入借阅.sql');
+    await callProcedure(`BEGIN 借书(100, '20051001', '1005050'); END;`);
   });
 
   after(async () => {
     await closeAll();
   });
 
+  it('应有 借书 存储过程且编译通过', async () => {
+    await assertObject('借书', 'PROCEDURE');
+    await assertCompiled('借书');
+  });
+
   it('借阅表里应多出一条流水号 100 的记录', async () => {
-    const n = await scalar(
-      `SELECT COUNT(*) FROM 借阅 WHERE 借阅流水号 = 100`
-    );
+    const n = await scalar(`SELECT COUNT(*) FROM 借阅 WHERE 借阅流水号 = 100`);
     assert.ok(
       n === 1,
-      `没找到流水号 100 的借阅记录 → 检查：调用了 借书 吗？三个参数顺序对不对（流水号在前）`
+      `没找到流水号 100 的借阅记录 → 检查：BEGIN 里是不是只写了 NULL;，INSERT INTO 借阅 有没有写`
     );
   });
 
@@ -42,7 +47,7 @@ describe('3.2 调用借书存储过程', () => {
     assert.deepStrictEqual(
       row[0],
       ['20051001', '1005050'],
-      `记录内容不对：${JSON.stringify(row[0])} → 检查：参数顺序是 (流水号, 借书证号, 图书编号)`
+      `记录内容不对：${JSON.stringify(row[0])} → 检查：VALUES 里参数的顺序是不是 (流水号, 借书证号, 图书编号, SYSDATE)`
     );
   });
 
@@ -53,17 +58,7 @@ describe('3.2 调用借书存储过程', () => {
     const today = new Date().toISOString().slice(0, 10);
     assert.strictEqual(
       d, today,
-      `借书日期是 ${d}，应为当天 ${today} → 检查：过程里用的是不是 SYSDATE`
-    );
-  });
-
-  it('这本书的是否借出应变成「是」', async () => {
-    const s = await scalar(
-      `SELECT 是否借出 FROM 图书 WHERE 图书编号 = '1005050'`
-    );
-    assert.strictEqual(
-      String(s).trim(), '是',
-      `图书状态是「${String(s).trim()}」，应为「是」→ 检查：过程里有没有 UPDATE 图书`
+      `借书日期是 ${d}，应为当天 ${today} → 检查：VALUES 最后一个值是不是 SYSDATE`
     );
   });
 });

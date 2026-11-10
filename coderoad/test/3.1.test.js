@@ -9,14 +9,15 @@ const {
 } = require('./utils');
 
 /**
- * 3.1 建「借书」存储过程
- * 判题：重放基线 → 重放学生的 3.1 → 断言过程存在、能编译、三个参数齐全
+ * 3.1 写出「借书」存储过程的骨架
+ * 判题：重放基线 → 重放学生的 3.1 → 断言过程存在、能编译、三个参数齐全。
+ * 这一步故意不检查过程做了什么：骨架阶段它就是个空壳。
  */
-describe('3.1 建借书存储过程', () => {
+describe('3.1 写借书过程骨架', () => {
   before(async () => {
     await resetSchema();
     await replay('answers/00_基线.sql');
-    await replay('sql/3.1_借书过程.sql');
+    await replay('sql/3.1_借书骨架.sql');
   });
 
   after(async () => {
@@ -37,7 +38,7 @@ describe('3.1 建借书存储过程', () => {
        WHERE object_name = '借书' AND in_out = 'IN' AND argument_name IS NOT NULL`);
     assert.ok(
       n === 3,
-      `参数个数是 ${n}，要求 3 个（借阅流水号、借书证号、图书编号）→ 检查：括号里是不是写了三个参数`
+      `参数个数是 ${n}，要求 3 个（借阅流水号、借书证号、图书编号）→ 检查：过程名后面的括号里是不是写了三个参数`
     );
   });
 });

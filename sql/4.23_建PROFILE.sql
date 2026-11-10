@@ -1,0 +1,5 @@
+-- 4.23 建 PROFILE「限时锁定」
+-- 目标：CREATE PROFILE ... LIMIT，两个参数：
+-- FAILED_LOGIN_ATTEMPTS 3（连续错 3 次锁）和 PASSWORD_LOCK_TIME 10（锁 10 天）。
+
+-- TODO 在下面写 CREATE PROFILE

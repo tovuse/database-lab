@@ -1,0 +1,2 @@
+-- 4.4 标准答案：删掉预约表
+DROP TABLE 预约 CASCADE CONSTRAINTS;

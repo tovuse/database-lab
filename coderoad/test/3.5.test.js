@@ -3,47 +3,41 @@ const {
   resetSchema,
   replay,
   scalar,
-  exec,
   assertObject,
+  assertCompiled,
   closeAll,
 } = require('./utils');
 
 /**
- * 3.5 建序列让流水号自动递增
- * 判题：重放学生的序列定义 → 连续取三次 NEXTVAL → 断言从 100 开始、每次 +1
+ * 3.5 写出「预约」存储过程的骨架
+ * 判题：过程存在、能编译、三个参数齐全。不检查过程做了什么。
  */
-describe('3.5 建序列', () => {
+describe('3.5 写预约过程骨架', () => {
   before(async () => {
     await resetSchema();
-    await replay('sql/3.5_序列.sql');
+    await replay('answers/00_基线.sql');
+    await replay('sql/3.5_预约骨架.sql');
   });
 
   after(async () => {
     await closeAll();
   });
 
-  it('应有 序列_借阅 序列', async () => {
-    await assertObject('序列_借阅', 'SEQUENCE');
+  it('应有 图书预约 存储过程', async () => {
+    await assertObject('图书预约', 'PROCEDURE');
   });
 
-  it('起始值应为 100', async () => {
-    const s = await scalar(
-      `SELECT last_number FROM user_sequences WHERE sequence_name = '序列_借阅'`
-    );
-    assert.strictEqual(
-      Number(s), 100,
-      `序列下一个值是 ${s}，应为 100 → 检查：START WITH 100`
-    );
+  it('应能编译通过', async () => {
+    await assertCompiled('图书预约');
   });
 
-  it('每次应递增 1', async () => {
-    const r = await exec(`SELECT 序列_借阅.NEXTVAL FROM dual`);
-    const a = Number(r.rows[0][0]);
-    const r2 = await exec(`SELECT 序列_借阅.NEXTVAL FROM dual`);
-    const b = Number(r2.rows[0][0]);
-    assert.strictEqual(
-      b - a, 1,
-      `连续取两次是 ${a} 和 ${b}，差值 ${b - a}，应为 1 → 检查：INCREMENT BY 1`
+  it('应有 3 个输入参数', async () => {
+    const n = await scalar(`
+      SELECT COUNT(*) FROM user_arguments
+       WHERE object_name = '图书预约' AND in_out = 'IN' AND argument_name IS NOT NULL`);
+    assert.ok(
+      n === 3,
+      `参数个数是 ${n}，要求 3 个（预约流水号、借书证号、ISBN）→ 检查：过程名后面的括号里是不是写了三个参数`
     );
   });
 });

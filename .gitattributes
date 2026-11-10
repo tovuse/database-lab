@@ -1,0 +1,29 @@
+# 换行符：这些文件会被 Linux 容器直接执行或解析，必须是 LF。
+#
+# 为什么必须显式写：
+#   开发机是 Windows（core.autocrlf=true）。没有这条规则时，git 检出可能把
+#   .sh 写成 CRLF，进了容器就报 `$'\r': command not found`，
+#   而 Dockerfile 则会因为行尾差异出现难以定位的解析错误。
+#   这类故障在 Windows 上完全看不出来，只在 Codespace 里炸。
+#
+# text=auto eol=lf：仓库内统一存 LF，检出也用 LF（不受 core.autocrlf 影响）。
+
+* text=auto eol=lf
+
+# 会在容器里被 bash 执行/解析的
+*.sh       text eol=lf
+Dockerfile text eol=lf
+.dockerignore text eol=lf
+
+# JSON / JS / Markdown 也保持 LF，和工作区设置 files.eol="\n" 一致
+*.json text eol=lf
+*.js   text eol=lf
+*.md   text eol=lf
+
+# SQL 交给 Oracle 读，只保留 LF 最稳
+*.sql  text eol=lf
+
+# 二进制：不要让 git 做任何换行转换
+*.docx binary
+*.png  binary
+*.tgz  binary

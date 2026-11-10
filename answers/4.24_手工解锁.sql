@@ -1,0 +1,3 @@
+-- 4.24 标准答案：手工解锁 USER1
+ALTER USER 用户_USER1 ACCOUNT UNLOCK;
+-- 若用户还有未到期的密码：ALTER USER 用户_USER1 IDENTIFIED BY view2026;

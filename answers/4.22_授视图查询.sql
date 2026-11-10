@@ -1,0 +1,2 @@
+-- 4.22 标准答案：只授视图查询
+GRANT SELECT ON VIEW_READER TO 用户_USER1;

@@ -10,54 +10,45 @@ const {
 } = require('./utils');
 
 /**
- * 3.8 图书丢失过程
- * 判题：造一条未还记录 → 调用图书丢失 → 断言罚款分类=3、备注='丢失'
+ * 3.8 还书过程骨架：只改图书状态
+ * 判题：造一条未还记录 → 调用还书 → 断言 图书.是否借出 变回「否」。
+ * 归还日期是下一关才填的，这一步不检查。
  */
-describe('3.8 建图书丢失存储过程', () => {
+describe('3.8 还书过程改图书状态', () => {
   before(async () => {
     await resetSchema();
     await replay('answers/00_基线.sql');
-    await replay('answers/3.4_造一条未还记录.sql');
-    await replay('sql/3.8_丢失过程.sql');
-    await callProcedure(`BEGIN 图书丢失('20051001', '1005050'); END;`);
+    await replay('answers/3.8_造一条未还记录.sql');
+    await replay('sql/3.8_还书改图书状态.sql');
+    await callProcedure(`BEGIN 还书('20051001', '1005050', 1); END;`);
   });
 
   after(async () => {
     await closeAll();
   });
 
-  it('应有 图书丢失 存储过程且编译通过', async () => {
-    await assertObject('图书丢失', 'PROCEDURE');
-    await assertCompiled('图书丢失');
+  it('应有 还书 存储过程且编译通过', async () => {
+    await assertObject('还书', 'PROCEDURE');
+    await assertCompiled('还书');
   });
 
-  it('罚款分类号应改为 3', async () => {
+  it('应有 3 个输入参数', async () => {
     const n = await scalar(`
-      SELECT 罚款分类号 FROM 借阅
-       WHERE 借书证号 = '20051001' AND 图书编号 = '1005050' AND 归还日期 IS NULL`);
-    assert.strictEqual(
-      Number(n), 3,
-      `罚款分类号是 ${n}，应为 3（丢失）→ 检查：UPDATE 里有没有 SET 罚款分类号 = 3`
+      SELECT COUNT(*) FROM user_arguments
+       WHERE object_name = '还书' AND in_out = 'IN' AND argument_name IS NOT NULL`);
+    assert.ok(
+      n === 3,
+      `参数个数是 ${n}，要求 3 个（借书证号、图书编号、罚款分类号）`
     );
   });
 
-  it('备注应改为「丢失」', async () => {
-    const r = await scalar(`
-      SELECT 备注 FROM 借阅
-       WHERE 借书证号 = '20051001' AND 图书编号 = '1005050' AND 归还日期 IS NULL`);
-    assert.strictEqual(
-      String(r).trim(), '丢失',
-      `备注是「${r}」，应为「丢失」→ 检查：UPDATE 里有没有 SET 备注 = '丢失'`
-    );
-  });
-
-  it('图书状态应保持「是」', async () => {
+  it('图书的是否借出应变成「否」', async () => {
     const s = await scalar(
       `SELECT 是否借出 FROM 图书 WHERE 图书编号 = '1005050'`
     );
     assert.strictEqual(
-      String(s).trim(), '是',
-      `图书状态是「${String(s).trim()}」，丢失的书应该仍是「是」→ 检查：不要把它改成「否」`
+      String(s).trim(), '否',
+      `图书状态是「${String(s).trim()}」，应为「否」→ 检查：过程里有没有 UPDATE 图书 SET 是否借出 = '否'`
     );
   });
 });

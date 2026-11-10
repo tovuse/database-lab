@@ -1,10 +1,7 @@
 const assert = require('node:assert');
-const {
-  resetSchema, replay, replayAll, assertTable, assertColumn,
-  assertConstraint, expectError, closeAll,
-} = require('./utils');
+const { resetSchema, replayAll, replay, exec, assertTable, assertColumn, assertConstraint, expectError, closeAll } = require('./utils');
 
-describe('1.6 建书目表', () => {
+describe('1.6 建「书目」表（含外键）', () => {
   before(async () => {
     await resetSchema();
     await replayAll([
@@ -37,6 +34,11 @@ describe('1.6 建书目表', () => {
   });
 
   it('单价为负数应被 CHECK 拒绝', async () => {
+    // 先补一条合法的分类，否则负数单价会先被外键拦住（ORA-02291），
+    // 测不到 CHECK 是不是真的有
+    await exec(
+      `INSERT INTO 图书分类 (图书分类号, 类名) VALUES ('100', '文学')`
+    );
     await expectError(
       `INSERT INTO 书目 (ISBN, 书名, 单价, 图书分类号)
        VALUES ('9999999999998', '测试书', -1, '100')`,

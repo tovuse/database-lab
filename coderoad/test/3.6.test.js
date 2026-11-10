@@ -2,73 +2,49 @@ const assert = require('node:assert');
 const {
   resetSchema,
   replay,
-  query,
   scalar,
   assertObject,
   assertCompiled,
-  callProcedure,
+  expectCallError,
   closeAll,
 } = require('./utils');
 
 /**
- * 3.6 简化借书过程（2 参数，流水号走序列）
- * 判题：重放序列 + 主线数据 → 重放学生的过程 → 连调两次 → 断言流水号自动生成且递增
+ * 3.6 给「预约」补上可借判断
+ * 判题：这个 ISBN 还有可借的书，调用必须被拒绝（RAISE_APPLICATION_ERROR）。
  */
-describe('3.6 建简化借书存储过程', () => {
+describe('3.6 预约的可借判断', () => {
   before(async () => {
     await resetSchema();
     await replay('answers/00_基线.sql');
-    await replay('answers/3.5_序列.sql');
-    await replay('sql/3.6_简化借书过程.sql');
+    await replay('sql/3.6_预约判断.sql');
   });
 
   after(async () => {
     await closeAll();
   });
 
-  it('应有 简化借书 存储过程且编译通过', async () => {
-    await assertObject('简化借书', 'PROCEDURE');
-    await assertCompiled('简化借书');
+  it('应有 图书预约 存储过程且编译通过', async () => {
+    await assertObject('图书预约', 'PROCEDURE');
+    await assertCompiled('图书预约');
   });
 
-  it('应有 2 个输入参数', async () => {
-    const n = await scalar(`
-      SELECT COUNT(*) FROM user_arguments
-       WHERE object_name = '简化借书' AND in_out = 'IN' AND argument_name IS NOT NULL`);
-    assert.ok(
-      n === 2,
-      `参数个数是 ${n}，要求 2 个（借书证号、图书编号）→ 检查：不用再传流水号，它由序列生成`
+  it('还有可借图书时必须拒绝预约', async () => {
+    // 9787506336239 对应 1005050，基线里 1005050 的 是否借出 是「否」
+    await expectCallError(
+      `BEGIN 图书预约(201, '20051001', '9787506336239'); END;`,
+      '',
+      '这个 ISBN 还有可借的书，预约本该被拒绝 → 检查：过程里要先 SELECT COUNT(*) INTO 再 IF 判断'
     );
   });
 
-  it('调用两次应自动生成两条记录，流水号递增', async () => {
-    await callProcedure(`BEGIN 简化借书('20051001', '1005050'); END;`);
-    await callProcedure(`BEGIN 简化借书('20061234', '2001231'); END;`);
-
-    const rows = await query(`
-      SELECT 借阅流水号 FROM 借阅
-       WHERE 借书证号 = '20051001' AND 图书编号 = '1005050'
-          OR 借书证号 = '20061234' AND 图书编号 = '2001231'
-       ORDER BY 借阅流水号`);
-    assert.strictEqual(
-      rows.length, 2,
-      `插入 ${rows.length} 条记录，应为 2 条 → 检查：过程体是不是只有一条 INSERT`
+  it('被拒绝时不应插入预约记录', async () => {
+    const n = await scalar(
+      `SELECT COUNT(*) FROM 预约 WHERE 预约流水号 = 201`
     );
-    const [a, b] = rows.map((r) => Number(r[0]));
     assert.strictEqual(
-      b - a, 1,
-      `两条记录的流水号是 ${a} 和 ${b}，差值 ${b - a}，应为 1 → 检查：INSERT 里用的是不是 序列_借阅.NEXTVAL`
-    );
-  });
-
-  it('借书日期应为当天', async () => {
-    const d = await scalar(`
-      SELECT TO_CHAR(MAX(借书日期), 'yyyy-mm-dd') FROM 借阅
-       WHERE 借书证号 = '20051001' AND 图书编号 = '1005050'`);
-    const today = new Date().toISOString().slice(0, 10);
-    assert.strictEqual(
-      d, today,
-      `借书日期是 ${d}，应为当天 ${today} → 检查：VALUES 里有没有 SYSDATE`
+      Number(n), 0,
+      `预约表里出现了流水号 201 的记录 → 检查：IF 判断要在 INSERT 之前，抛错后不该再插数据`
     );
   });
 });

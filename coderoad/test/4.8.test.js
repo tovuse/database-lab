@@ -1,86 +1,61 @@
 const assert = require('node:assert');
 const {
   closeAll,
+  parsePumpCommand,
+  runPump,
+  dumpFileExists,
+  readDumpLog,
   loadCourseBaseline,
-  resetSecurityObjects,
-  replayAsCourse,
-  queryAsCourse,
+  cleanDumpFiles,
 } = require('./utils');
 
 /**
- * 4.8 建角色「图书管理员」
- *
- * 判题：
- *   1. 角色存在
- *   2. 拿到了 CONNECT 角色（间接给会话权限）
- *   3. 对三个过程有 EXECUTE
- *   4. 对 书目 有 SELECT
- *
- * 前置：三个过程来自第 3 章，测试用 answers 里的标准版本补齐。
+ * 4.8 按用户（schema）方式导出整个库
+ * 判题：SCHEMAS=COURSE、转储文件生成、日志成功、日志里 7 张表都在。
  */
-describe('4.8 建图书管理员角色', () => {
+describe('4.8 全库方式导出', () => {
+  let parsed;
+
   before(async () => {
-    await resetSecurityObjects({ users: [], roles: ['图书管理员'], profiles: [] });
     await loadCourseBaseline();
-    // 三个过程必须建在 COURSE schema 里：角色授的是 COURSE.借书 这类对象，
-    // 建到 TESTER 里授权会找不到对象。
-    for (const f of [
-      'answers/3.1_借书过程.sql',
-      'answers/3.3_图书预约过程.sql',
-      'answers/3.4_还书过程.sql',
-    ]) {
-      await replayAsCourse(f);
-    }
-    // 上一关留下的旧角色先清掉，避免重复执行报 ORA-01921
-    await replayAsCourse('sql/4.8_建角色.sql');
+    parsed = parsePumpCommand('sql/4.8_全库导出.sh', 'expdp');
+    cleanDumpFiles(parsed.params.DUMPFILE.replace(/\.dmp$/, ''));
+    cleanDumpFiles(parsed.params.LOGFILE.replace(/\.log$/, ''));
+    runPump(parsed);
   });
 
   after(async () => {
     await closeAll();
   });
 
-  it('角色「图书管理员」应存在', async () => {
-    const n = (await queryAsCourse(
-      `SELECT role FROM dba_roles WHERE role = '图书管理员'`
-    )).length;
+  it('应使用 SCHEMAS=COURSE（不是 TABLES）', async () => {
     assert.ok(
-      n === 1,
-      `没找到角色「图书管理员」→ 检查：CREATE ROLE 图书管理员; 有没有执行`
+      (parsed.params.SCHEMAS || '').toUpperCase() === 'COURSE',
+      `SCHEMAS 是「${parsed.params.SCHEMAS || '(空)'}」→ 检查：全库导出要写 SCHEMAS=COURSE`
     );
   });
 
-  it('角色应被授予 CONNECT', async () => {
-    const rows = await queryAsCourse(
-      `SELECT granted_role FROM dba_role_privs WHERE grantee = '图书管理员'`
-    );
-    const roles = rows.map((r) => String(r[0]).toUpperCase());
+  it('转储文件应生成', async () => {
     assert.ok(
-      roles.includes('CONNECT'),
-      `角色拿到的角色是 [${roles.join(', ')}]，缺 CONNECT → 检查：GRANT CONNECT TO 图书管理员;`
+      dumpFileExists(parsed.params.DUMPFILE),
+      `DUMPDIR 里没有 ${parsed.params.DUMPFILE} → 检查：DUMPFILE 名字、DIRECTORY 是否写对`
     );
   });
 
-  it('角色应对 书目 有 SELECT', async () => {
-    const rows = await queryAsCourse(`
-      SELECT privilege FROM dba_tab_privs
-       WHERE grantee = '图书管理员' AND table_name = '书目'`);
-    const privs = rows.map((r) => String(r[0]).toUpperCase());
+  it('日志应显示成功', async () => {
+    const log = readDumpLog(parsed.params.LOGFILE);
     assert.ok(
-      privs.includes('SELECT'),
-      `书目 上的权限是 [${privs.join(', ')}]，缺 SELECT → 检查：GRANT SELECT ON 书目 TO 图书管理员;`
+      /successfully completed/i.test(log),
+      `日志没有 "successfully completed" → 看 /tmp/dump/${parsed.params.LOGFILE}`
     );
   });
 
-  it('角色应对三个过程有 EXECUTE', async () => {
-    const rows = await queryAsCourse(`
-      SELECT table_name FROM dba_tab_privs
-       WHERE grantee = '图书管理员' AND privilege = 'EXECUTE'`);
-    const names = rows.map((r) => String(r[0]).toUpperCase());
-    const want = ['借书', '还书', '图书预约'];
-    const missing = want.filter((w) => !names.includes(w));
+  it('日志里应提到 7 张以上的表被导出', async () => {
+    const log = readDumpLog(parsed.params.LOGFILE);
+    const rows = (log.match(/exported "COURSE"/g) || []).length;
     assert.ok(
-      missing.length === 0,
-      `这些过程还没授 EXECUTE：${missing.join('、')}（当前有：${names.join('、') || '无'}）→ 检查：GRANT EXECUTE ON 过程名 TO 图书管理员;`
+      rows >= 7,
+      `日志里只看到 ${rows} 张表被导出，基线有 7 张 → 检查：SCHEMAS 是否真指向 COURSE`
     );
   });
 });

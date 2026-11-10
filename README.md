@@ -104,19 +104,16 @@ GitHub 免费账号每月有 120 core-hours + 15GB 存储。这门课的镜像�
 
 实测于 2026-11-08 的 Codespaces 环境，详见 `CodeRoad课程云端实操测试报告.docx`。
 
+> **已过期提醒**：这三条现在都由仓库根的 `Dockerfile` 解决了（Node 20 和判题依赖直接烘进镜像），
+> 下面的原始描述保留作为背景；**不要再按 P0-1 去加 `features`**，那会和镜像里的 Node 重复。
+
 **P0-1 镜像里没有 Node.js。** `gvenzl/oracle-free:23-slim` 是纯 Oracle 镜像，
 不含 Node，`postCreate.sh` 里的 `npm install` 必然失败，判题器起不来。
-必须在 `devcontainer.json` 里加 feature：
-
-```jsonc
-"features": {
-  "ghcr.io/devcontainers/features/node:1": { "version": "20" }
-}
-```
+现方案：Dockerfile 里装 Node 20 到 `/opt/node`，判题依赖预装到 `/opt/coderoad-deps`。
 
 **P0-2 `coderoad/node_modules` 不能入库。** 里面 734 个文件是从 Windows 提交的，
 `.bin/mocha` 权限是 644，Linux 下执行报 `Permission denied`。应从版本库移除，
-交给 `postCreate` 现场 `npm install`。
+由镜像预装、`postCreate` 在运行期拷进工作区。
 
 **P0-3 `postCreate.sh` 的 `set -e` 会掩盖失败。** 第 3 步 npm install 一失败脚本就退出，
 第 4 步「清理课程脚手架」永远不执行，工作区里留着 `TUTORIAL.md` / `coderoad.yaml`。
@@ -124,7 +121,7 @@ GitHub 免费账号每月有 120 core-hours + 15GB 存储。这门课的镜像�
 
 **P1 Level 2 的 setup 未必触发。** 通过 Continue 弹窗进入下一关时，`coderoad.yaml`
 里配置的 level `setup` 命令不会执行，基线表为空，5 道查询题全部无法作答。
-不要依赖它，改由 `postCreate` 装载基线。
+不要依赖它，改由镜像的 initdb 脚本（`/container-entrypoint-initdb.d/10_db_setup.sh`）装载。
 
 ### 1. `codeally.json` 必须放在**根目录**
 

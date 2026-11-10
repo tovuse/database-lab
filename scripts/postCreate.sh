@@ -1,14 +1,22 @@
 #!/usr/bin/env bash
-# Codespaces 创建后初始化：建判题用户、装依赖、装载基线、清理课程脚手架
+# Codespaces 创建后初始化（精简版）
 #
-# 设计要点（都是实测踩出来的）：
+# 分工变了：能提前做的都做进镜像了。
+#   镜像（Dockerfile + /container-entrypoint-initdb.d/10_db_setup.sh）负责——
+#     - 装 Node 20（/opt/node）
+#     - 预装判题依赖（/opt/coderoad-deps）
+#     - 建 TESTER、给 COURSE 授权、建 DUMPDIR、装载基线（首次建库时自动跑）
+#   这个脚本只剩三件事：
+#     1. 确认数据库已就绪（Oracle 首次建库 2–3 分钟，postCreate 可能抢在它前面）
+#     2. 确认镜像该做的那几项真的到位了，没到位就现场补（全部幂等）
+#     3. 清理课程脚手架 + 检查"自动开课"所需的变量
+#
+# 设计要点（沿用上一版，都是实测踩出来的）：
 #   - 不用 `set -e`：任何一个非关键步骤失败都不该让后面的步骤全部跳过。
 #     （早期版本用 set -e，npm install 一失败脚本就退出，
 #      清理脚手架那一步从未执行，工作区里一直留着 TUTORIAL.md）
-#   - npm install 与 Oracle 启动**并行**：Oracle 首次启动要 2–3 分钟，
-#     这段时间足够把判题依赖装完，串行做等于白等。
 #   - 关键步骤失败要显式报错并以非零码退出，报错要能看出是哪一步、怎么修。
-#   - 基线数据在这里装，不依赖 CodeRoad 的 level setup
+#   - 基线数据不再依赖 CodeRoad 的 level setup
 #     （通过 Continue 弹窗进入下一关时，level setup 不一定触发）。
 set -uo pipefail
 cd "${WORKSPACE_FOLDER:-$PWD}"
@@ -23,20 +31,7 @@ sqlplus_ok() {
   sqlplus -S -L "$conn" 2>/dev/null <<<"$probe" | tr -d ' \t\r\n' | grep -qi "${3:-OK}"
 }
 
-echo "===== 1/5 并行启动：装依赖 + 等 Oracle ====="
-
-# --- 后台：装判题依赖（这一步不需要数据库）---
-NPM_PID=""
-if [ -f coderoad/package.json ] && command -v npm >/dev/null 2>&1; then
-  echo "  ⏳ 后台安装判题依赖……"
-  ( npm install --prefix coderoad --no-audit --no-fund >/tmp/npm.log 2>&1
-    echo $? > /tmp/npm.rc ) &
-  NPM_PID=$!
-elif ! command -v npm >/dev/null 2>&1; then
-  echo "  ⚠️  npm 不可用，依赖安装暂缓（先解决 Node）"
-fi
-
-# --- 前台：等 Oracle 起来 ---
+echo "===== 1/5 等 Oracle 就绪 ====="
 if bash scripts/waitForDb.sh; then
   ok "Oracle 已就绪"
 else
@@ -47,107 +42,97 @@ echo ""
 echo "===== 2/5 检查 Node.js ====="
 if command -v node >/dev/null 2>&1; then
   ok "Node.js $(node -v)"
-else
-  # 兜底：devcontainer feature 没生效时，现场装一份
-  echo "   devcontainer 的 Node feature 似乎没生效，尝试现场安装……"
-  if curl -sSL https://nodejs.org/dist/v20.18.1/node-v20.18.1-linux-x64.tar.gz \
-       | sudo tar -xz -C /usr/local --strip-components=1 2>/dev/null; then
-    sudo ln -sf /usr/local/bin/node /usr/bin/node 2>/dev/null || true
-    sudo ln -sf /usr/local/bin/npm  /usr/bin/npm  2>/dev/null || true
-    if command -v node >/dev/null 2>&1; then
-      ok "Node.js 已补装：$(node -v)"
-      # Node 是刚刚才装好的，之前的后台 npm 跑不起来，这里补一次
-      if [ -z "$NPM_PID" ] && [ -f coderoad/package.json ]; then
-        ( npm install --prefix coderoad --no-audit --no-fund >/tmp/npm.log 2>&1
-          echo $? > /tmp/npm.rc ) &
-        NPM_PID=$!
-      fi
-    else
-      fail "Node.js 补装后仍然找不到" "检查 .devcontainer/devcontainer.json 的 features 段"
-    fi
+elif [ -x /opt/node/bin/node ]; then
+  # 兜底：镜像里装了 Node 20，但 PATH 没带上（非登录 shell 的典型情况）
+  echo "   Node 在 /opt/node/bin，补软链接……"
+  sudo ln -sf /opt/node/bin/node /usr/local/bin/node 2>/dev/null || true
+  sudo ln -sf /opt/node/bin/npm  /usr/local/bin/npm  2>/dev/null || true
+  export PATH="/opt/node/bin:$PATH"
+  if command -v node >/dev/null 2>&1; then
+    ok "Node.js $(node -v)"
   else
-    fail "Node.js 既没预装也装不上" "检查 .devcontainer/devcontainer.json 的 features 段，或网络是否可达 nodejs.org"
+    fail "Node.js 在 /opt/node/bin/node 但补 PATH 后仍不可用" "检查 /opt/node 是否完整；镜像应由仓库根的 Dockerfile 构建"
   fi
+else
+  fail "找不到 Node.js" "镜像应由仓库根的 Dockerfile 构建（它预装 /opt/node），检查 .devcontainer/devcontainer.json 的 build 段"
 fi
 
 echo ""
-echo "===== 3/5 创建判题用户 TESTER ====="
-# 幂等：TESTER 已存在时跳过 CREATE USER，避免 ORA-01920 刷屏
-EXISTS=$(sqlplus -S -L / as sysdba 2>/dev/null <<'SQL' | tr -d ' \t\r\n'
-SET HEADING OFF FEEDBACK OFF PAGESIZE 0
-ALTER SESSION SET CONTAINER = FREEPDB1;
-SELECT COUNT(*) FROM dba_users WHERE username = 'TESTER';
-EXIT;
-SQL
-)
-if [ "${EXISTS:-0}" = "0" ]; then
-  sqlplus -S / as sysdba >/dev/null 2>&1 <<'SQL' && ok "TESTER 用户已创建" || fail "TESTER 创建失败" "手工执行第 3 步的 SQL 看报错"
-ALTER SESSION SET CONTAINER = FREEPDB1;
-CREATE USER tester IDENTIFIED BY tester;
-GRANT CONNECT, RESOURCE, DBA TO tester;
-GRANT UNLIMITED TABLESPACE TO tester;
-EXIT;
-SQL
-else
-  ok "TESTER 用户已存在，跳过创建"
-fi
-
-# 授权每次都执行（幂等）。注意 DROP ROLE / DROP PROFILE 不是可授权的权限名，
-# 必须逐个授权，写在一起会报 ORA-00990。
-sqlplus -S / as sysdba >/dev/null 2>&1 <<'SQL'
-ALTER SESSION SET CONTAINER = FREEPDB1;
-GRANT CREATE USER TO COURSE;
-GRANT ALTER USER TO COURSE;
-GRANT DROP USER TO COURSE;
-GRANT CREATE ROLE TO COURSE;
-GRANT GRANT ANY ROLE TO COURSE;
-GRANT CREATE PROFILE TO COURSE;
-GRANT ALTER PROFILE TO COURSE;
-GRANT SELECT ANY DICTIONARY TO COURSE;
-CREATE OR REPLACE DIRECTORY dumpdir AS '/tmp/dump';
-GRANT READ, WRITE ON DIRECTORY dumpdir TO COURSE;
-GRANT READ, WRITE ON DIRECTORY dumpdir TO tester;
-EXIT;
-SQL
-ok "COURSE / TESTER 授权就绪"
-
-if sqlplus_ok 'tester/tester@//localhost:1521/FREEPDB1' 'SELECT 1 FROM dual;' '1'; then
-  ok "TESTER 可以登录"
-else
-  fail "TESTER 登录不了" "判题器无法工作；手工执行：sqlplus tester/tester@//localhost:1521/FREEPDB1"
-fi
-
-echo ""
-echo "===== 4/5 收尾判题依赖 ====="
+echo "===== 3/5 判题依赖 ====="
+# 镜像里预装在 /opt/coderoad-deps；工作区是挂载卷，所以必须运行期拷进来。
+# 已经是完整副本就跳过（停止再启动 codespace 时 node_modules 还在，不用重拷）。
 if [ ! -f coderoad/package.json ]; then
   fail "coderoad/package.json 不存在" "工作区不完整，建议删除 codespace 重建"
-elif ! command -v npm >/dev/null 2>&1; then
-  fail "npm 不可用，装不了依赖" "先解决第 2 步的 Node 问题"
-elif [ -n "$NPM_PID" ]; then
-  # 等后台安装结束（如果还没结束）
-  wait "$NPM_PID" 2>/dev/null
-  RC=$(cat /tmp/npm.rc 2>/dev/null || echo 1)
-  if [ "$RC" = "0" ]; then
+elif [ -x coderoad/node_modules/.bin/mocha ] && [ -d coderoad/node_modules/oracledb ]; then
+  ok "判题依赖已在工作区（mocha + oracledb）"
+elif [ -d /opt/coderoad-deps/node_modules ]; then
+  echo "  ⏳ 从镜像预装目录拷贝判题依赖……"
+  rm -rf coderoad/node_modules
+  # 用 cp -R 而不是 cp -a：镜像里的文件属主是 root，-a 会尝试保留属主，
+  # 当前用户（oracle）没有 chown 权限，cp 会报 "failed to preserve ownership" 并返回非零。
+  if cp -R /opt/coderoad-deps/node_modules coderoad/node_modules; then
     chmod +x coderoad/node_modules/.bin/* 2>/dev/null || true
     if [ -x coderoad/node_modules/.bin/mocha ]; then
-      ok "判题依赖已安装，mocha 可执行"
+      ok "判题依赖已就位，mocha 可执行"
     else
-      fail "mocha 装好了但没有可执行权限" "执行：chmod +x coderoad/node_modules/.bin/*"
+      fail "拷进来但 mocha 不可执行" "执行：chmod +x coderoad/node_modules/.bin/*"
     fi
+  else
+    fail "从镜像拷贝判题依赖失败" "执行：cp -a /opt/coderoad-deps/node_modules coderoad/node_modules"
+  fi
+elif command -v npm >/dev/null 2>&1; then
+  # 最后兜底：镜像里没有预装依赖（例如本地调试用的别的镜像），现场装
+  echo "  ⏳ 镜像里没有预装依赖，现场 npm install……"
+  if ( cd coderoad && npm install --no-audit --no-fund >/tmp/npm.log 2>&1 ); then
+    chmod +x coderoad/node_modules/.bin/* 2>/dev/null || true
+    ok "判题依赖已安装"
   else
     fail "npm install 失败" "看 /tmp/npm.log；常见原因是网络或 registry 不可达"
     tail -5 /tmp/npm.log >&2
   fi
 else
-  fail "判题依赖没有装上" "手工执行：cd coderoad && npm install"
+  fail "既没有预装依赖也没有 npm" "镜像应由仓库根的 Dockerfile 构建"
 fi
 
 echo ""
-echo "===== 5/5 装载基线数据 + 清理课程脚手架 ====="
-# 基线在 postCreate 装好，不依赖 CodeRoad 的 level setup。
-# loadBaseline.sh 是幂等的（先清空再重建），重复执行安全。
-if bash scripts/loadBaseline.sh >/tmp/baseline.log 2>&1; then
-  ok "COURSE 库的 7 张基线表已就绪"
+echo "===== 4/5 数据库对象与权限 ====="
+# 镜像的 initdb 已经做过一遍；这里再跑一次同一个脚本 —— 它整体是幂等的。
+# 主要覆盖两种情况：从旧镜像/预构建恢复时跳过了 initdb，或者有人手工改坏了权限。
+if [ -x /opt/course/dbSetup.sh ]; then
+  bash /opt/course/dbSetup.sh >/tmp/dbSetup.log 2>&1
+  ok "建库初始化脚本已重跑（日志 /tmp/dbSetup.log）"
+else
+  fail "镜像里没有 /opt/course/dbSetup.sh" "镜像应由仓库根的 Dockerfile 构建"
+fi
+
+if sqlplus_ok 'tester/tester@//localhost:1521/FREEPDB1' 'SELECT 1 FROM dual;' '1'; then
+  ok "TESTER 可以登录（判题用户就绪）"
+else
+  fail "TESTER 登录不了" "判题器无法工作；看 /tmp/dbSetup.log，或手工执行 sqlplus tester/tester@//localhost:1521/FREEPDB1"
+fi
+
+if sqlplus_ok 'COURSE/course@//localhost:1521/FREEPDB1' 'SELECT 1 FROM dual;' '1'; then
+  ok "COURSE 可以登录（学生库就绪）"
+else
+  fail "COURSE 登录不了" "容器可能还没建好库；等 1 分钟后再执行 bash scripts/postCreate.sh"
+fi
+
+echo ""
+echo "===== 5/5 收尾：基线 / 脚手架 / 自动开课变量 ====="
+# 基线兜底：镜像 initdb 在"COURSE 库为空"时已装好，这里只在表数不足 7 时补。
+# loadBaseline.sh 是先清空再重建的，天然幂等；但这个判断能避免无谓地清掉学生的实验成果。
+TABLE_CNT=$(sqlplus -S -L COURSE/course@//localhost:1521/FREEPDB1 2>/dev/null <<'SQL' | tr -d ' \t\r\n'
+SET HEADING OFF
+SET FEEDBACK OFF
+SET PAGESIZE 0
+SELECT COUNT(*) FROM user_tables;
+EXIT;
+SQL
+)
+if [ "${TABLE_CNT:-0}" -ge 7 ] 2>/dev/null; then
+  ok "COURSE 库里有 ${TABLE_CNT} 张表，基线已就绪"
+elif bash scripts/loadBaseline.sh >/tmp/baseline.log 2>&1; then
+  ok "基线已补装（7 张表）"
 else
   fail "基线装载失败" "手工执行 bash scripts/loadBaseline.sh，或看 /tmp/baseline.log"
   tail -5 /tmp/baseline.log >&2
@@ -158,6 +143,32 @@ mkdir -p /tmp/dump
 rm -f TUTORIAL.md coderoad.yaml tutorial.json
 ok "课程脚手架已清理"
 
+# 修执行位：这些脚本在 Windows 上提交进 git 时是 644（core.filemode=false），
+# 而 coderoad.yaml 的 level setup 是直接 `./scripts/loadBaseline.sh` 调用的，
+# 没有执行位就会报 Permission denied —— 在 Windows 上完全看不出来，只在 Codespace 里炸。
+chmod +x scripts/*.sh 2>/dev/null || true
+ok "scripts/*.sh 已补执行位"
+
+# --- 自动开课自检 -------------------------------------------------------------
+# CodeRoad 在扩展宿主进程里读 process.env.CODEROAD_TUTORIAL_URL。
+# 镜像 ENV 和 devcontainer remoteEnv 各设了一份；这里验证"到底有没有传进来"，
+# 学生看不到第 1 关时，这一段输出能直接指出是哪一层缺了。
+echo ""
+echo "  ── 自动开课自检 ──"
+if [ -n "${CODEROAD_TUTORIAL_URL:-}" ]; then
+  ok "CODEROAD_TUTORIAL_URL=${CODEROAD_TUTORIAL_URL}"
+  if command -v curl >/dev/null 2>&1; then
+    HTTP=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 20 "$CODEROAD_TUTORIAL_URL" 2>/dev/null)
+    if [ "$HTTP" = "200" ]; then
+      ok "tutorial.json 可访问（HTTP ${HTTP}）"
+    else
+      fail "tutorial.json 拉不到（HTTP ${HTTP:-超时}）" "检查 URL 是否指向 main 分支上真实存在的文件，以及仓库是否为公开仓库"
+    fi
+  fi
+else
+  fail "这个 shell 里没有 CODEROAD_TUTORIAL_URL" "镜像 ENV 和 remoteEnv 都该设它；如果这里为空但 CodeRoad 能自动显示第 1 关，说明扩展宿主那份生效了，可以忽略"
+fi
+
 echo ""
 echo "======================================"
 if [ "$FAILED" -gt 0 ]; then
@@ -166,5 +177,5 @@ if [ "$FAILED" -gt 0 ]; then
   exit 1
 fi
 echo "✅ 环境就绪，直接开始做题"
-echo "   如果右侧没有 CodeRoad 面板：F1 → Reload Window"
+echo "   CodeRoad 应已自动显示第 1 关；没有的话：F1 → Reload Window"
 echo "======================================"

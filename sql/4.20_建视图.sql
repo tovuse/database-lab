@@ -1,0 +1,5 @@
+-- 4.20 建视图 VIEW_READER
+-- 目标：CREATE OR REPLACE VIEW，从 书目 和 图书分类 连表，
+-- 选出 ISBN、书名、类名 三列。
+
+-- TODO 在下面写 CREATE OR REPLACE VIEW VIEW_READER AS SELECT ...
