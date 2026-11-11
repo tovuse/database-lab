@@ -4,8 +4,8 @@ const { resetSchema, replay, assertConstraint, expectError, exec, scalar, closeA
 describe('1.23 给「读者」的身份证加 CHECK 约束（18 位）', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('sql/1.23_身份证约束.sql');
+    await replay('answers/00.sql');
+    await replay('sql/1.23.sql');
   });
   after(async () => { await closeAll(); });
 

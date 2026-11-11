@@ -12,7 +12,7 @@ describe('4.2 补导出文件名', () => {
   let parsed;
 
   before(async () => {
-    parsed = parsePumpCommandLoose('sql/4.2_导出文件名.sh', 'expdp');
+    parsed = parsePumpCommandLoose('sql/4.2.sh', 'expdp');
   });
 
   after(async () => {

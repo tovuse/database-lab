@@ -17,9 +17,9 @@ const {
 describe('3.8 还书过程改图书状态', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('answers/3.8_造一条未还记录.sql');
-    await replay('sql/3.8_还书改图书状态.sql');
+    await replay('answers/00.sql');
+    await replay('answers/3.8_seed.sql');
+    await replay('sql/3.8.sql');
     await callProcedure(`BEGIN 还书('20051001', '1005050', 1); END;`);
   });
 

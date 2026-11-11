@@ -89,7 +89,7 @@ COPY .devcontainer/initdb/10_db_setup.sh /opt/course/dbSetup.sh
 # 基线数据：只拷这一个文件，运行期工作区里的 answers/ 原样保留（判题器要用整目录）
 # 改成 ASCII 文件名存进镜像：这个路径会被 initdb 脚本按字面量引用，避免中文在
 # sqlplus 的 @ 命令和不同 locale 下出岔子
-COPY answers/00_基线.sql /opt/course/baseline/00_baseline.sql
+COPY answers/00.sql /opt/course/baseline/00_baseline.sql
 
 # 脚本必须有执行位：entrypoint 对 .sh 的处理是"可执行就用子进程跑，否则 source 进来"。
 # /tmp/dump 是 Data Pump 的 DIRECTORY 目标：目录要提前存在，且数据库进程（oracle 用户）能写。

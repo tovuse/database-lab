@@ -17,7 +17,7 @@ const {
 describe('3.10 建序列', () => {
   before(async () => {
     await resetSchema();
-    await replay('sql/3.10_序列.sql');
+    await replay('sql/3.10.sql');
   });
 
   after(async () => {

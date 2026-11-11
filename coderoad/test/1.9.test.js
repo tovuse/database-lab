@@ -4,7 +4,7 @@ const { resetSchema, replay, assertTable, assertColumn, assertConstraint, expect
 describe('1.9 建「读者」表', () => {
   before(async () => {
     await resetSchema();
-    await replay('sql/1.9_读者表.sql');
+    await replay('sql/1.9.sql');
   });
   after(async () => { await closeAll(); });
 

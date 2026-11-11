@@ -9,7 +9,7 @@ const {
 describe('2.3 各出版社的最高单价、平均单价', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
+    await replay('answers/00.sql');
   });
 
   after(async () => {
@@ -18,7 +18,7 @@ describe('2.3 各出版社的最高单价、平均单价', () => {
 
   it('结果应与标准答案一致（按平均单价降序）', async () => {
     await assertQueryEquals(
-      'sql/2.3_出版社价格.sql',
+      'sql/2.3.sql',
       `SELECT 出版单位,
               MAX(单价)           AS 最高单价,
               ROUND(AVG(单价), 2) AS 平均单价

@@ -9,7 +9,7 @@ const {
 describe('2.5 借阅未还的读者和图书', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
+    await replay('answers/00.sql');
   });
 
   after(async () => {
@@ -18,7 +18,7 @@ describe('2.5 借阅未还的读者和图书', () => {
 
   it('结果应与标准答案一致（按借书证号排序）', async () => {
     await assertQueryEquals(
-      'sql/2.5_未还图书.sql',
+      'sql/2.5.sql',
       `SELECT r.借书证号, r.姓名, t.图书编号, b.书名,
               TO_CHAR(l.借书日期, 'yyyy/mm/dd') AS 借书日期
          FROM 借阅 l

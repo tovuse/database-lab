@@ -4,9 +4,9 @@ const { resetSchema, replay, query, scalar, closeAll } = require('./utils');
 describe('1.20 改：把分类 400 的类名改成「艺术设计」', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('answers/1.19_插入分类.sql');   // 判题器先替你完成「增」
-    await replay('sql/1.20_更新分类.sql');
+    await replay('answers/00.sql');
+    await replay('answers/1.19.sql');   // 判题器先替你完成「增」
+    await replay('sql/1.20.sql');
   });
   after(async () => { await closeAll(); });
 

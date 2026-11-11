@@ -4,8 +4,8 @@ const { resetSchema, replay, expectError, exec, scalar, closeAll } = require('./
 describe('1.25 把「借阅」的借书日期改成 NOT NULL', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('sql/1.25_借书日期非空.sql');
+    await replay('answers/00.sql');
+    await replay('sql/1.25.sql');
   });
   after(async () => { await closeAll(); });
 

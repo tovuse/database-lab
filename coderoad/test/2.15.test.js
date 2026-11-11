@@ -4,13 +4,13 @@ const { resetSchema, replay, assertQueryEquals, closeAll } = require('./utils');
 describe('2.15 查询借阅了所有文学类书目的读者', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
+    await replay('answers/00.sql');
   });
   after(async () => { await closeAll(); });
 
   it('结果应与标准答案一致', async () => {
     await assertQueryEquals(
-      'sql/2.15_借阅全部文学类.sql',
+      'sql/2.15.sql',
       `SELECT r.姓名, r.单位
          FROM 读者 r
         WHERE NOT EXISTS (

@@ -26,7 +26,7 @@ describe('1.1 环境自检', () => {
   });
 
   it('文件里应有一条查询用户名的 SQL', async () => {
-    const file = path.join(WORKSPACE, 'sql/1.1_环境自检.sql');
+    const file = path.join(WORKSPACE, 'sql/1.1.sql');
     const text = fs
       .readFileSync(file, 'utf8')
       .split(/\r?\n/)
@@ -40,7 +40,7 @@ describe('1.1 环境自检', () => {
   });
 
   it('执行后应真的返回一个用户名', async () => {
-    const { rows } = await replay('sql/1.1_环境自检.sql');
+    const { rows } = await replay('sql/1.1.sql');
     assert.ok(
       rows.length >= 1 && rows[0][0],
       `查询没有返回用户名 → 检查：是不是 SELECT 了别的列，或者忘了写 dual`

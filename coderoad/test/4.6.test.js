@@ -35,7 +35,7 @@ describe('4.6 用 impdp 导入预约表', () => {
     await loadCourseBaseline();
 
     // 先读学生的 impdp，拿到他写的 DUMPFILE / LOGFILE 名字
-    parsed = parsePumpCommand('sql/4.6_导入预约表.sh', 'impdp');
+    parsed = parsePumpCommand('sql/4.6.sh', 'impdp');
 
     // 清旧产物必须在导出之前做。
     // 为什么顺序重要：学生的 DUMPFILE 和 LOGFILE 常常同前缀（yuyue.dmp / yuyue.log），
@@ -44,7 +44,7 @@ describe('4.6 用 impdp 导入预约表', () => {
     cleanDumpFiles(parsed.params.DUMPFILE.replace(/\.dmp$/, ''));
 
     // 用同一个 DUMPFILE 名字导出一份，作为导入的输入
-    const exp = parsePumpCommand('answers/4.3_导出预约表.sh', 'expdp');
+    const exp = parsePumpCommand('answers/4.3.sh', 'expdp');
     exp.params.DUMPFILE = parsed.params.DUMPFILE;
     exp.params.LOGFILE = 'exp_46.log';
     cleanDumpFiles('exp_46');

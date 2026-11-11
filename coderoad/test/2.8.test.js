@@ -4,13 +4,13 @@ const { resetSchema, replay, assertQueryEquals, closeAll } = require('./utils');
 describe('2.8 查询借阅两本及以上图书的读者', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
+    await replay('answers/00.sql');
   });
   after(async () => { await closeAll(); });
 
   it('结果应与标准答案一致', async () => {
     await assertQueryEquals(
-      'sql/2.8_借阅两本以上.sql',
+      'sql/2.8.sql',
       `SELECT r.借书证号, r.姓名, COUNT(*) AS 借阅次数
          FROM 读者 r JOIN 借阅 l ON r.借书证号 = l.借书证号
         GROUP BY r.借书证号, r.姓名

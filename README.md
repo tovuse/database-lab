@@ -36,7 +36,7 @@ codespace 都要点，但同一个 codespace 只需点一次）。
 
 ## 二、怎么用
 
-每一关都在 `sql/` 下有一个对应的文件，例如第 1.3 关就是 `sql/1.3_图书分类.sql`。
+每一关都在 `sql/` 下有一个对应的文件，例如第 1.3 关就是 `sql/1.3.sql`。
 
 1. 读右侧 CodeRoad 面板里的题目
 2. 在左边的 `.sql` 文件里写 SQL
@@ -69,7 +69,7 @@ exit                                     -- 退出
 ## 四、几个有用的脚本
 
 ```bash
-./scripts/apply.sh sql/1.3_图书分类.sql   # 把自己写的 SQL 真正应用到自己库里
+./scripts/apply.sh sql/1.3.sql   # 把自己写的 SQL 真正应用到自己库里
 ./scripts/reset.sh                        # 清空自己库里的所有对象，重头再来
 node scripts/build.js                     # 改了 TUTORIAL.md 后重新编译课程
 ```
@@ -102,7 +102,7 @@ GitHub 免费账号每月有 120 core-hours + 15GB 存储。这门课的镜像�
 
 ### 0. 三个 P0（不修，学生第 1 关就会卡死）
 
-实测于 2026-11-08 的 Codespaces 环境，详见 `CodeRoad课程云端实操测试报告.docx`。
+实测于 2026-11-08 的 Codespaces 环境，详见 `CodeRoad-course-cloud-test-report.docx`。
 
 > **已过期提醒**：这三条现在都由仓库根的 `Dockerfile` 解决了（Node 20 和判题依赖直接烘进镜像），
 > 下面的原始描述保留作为背景；**不要再按 P0-1 去加 `features`**，那会和镜像里的 Node 重复。

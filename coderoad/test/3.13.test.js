@@ -16,9 +16,9 @@ const {
 describe('3.13 建图书丢失存储过程', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('answers/3.8_造一条未还记录.sql');
-    await replay('sql/3.13_丢失过程.sql');
+    await replay('answers/00.sql');
+    await replay('answers/3.8_seed.sql');
+    await replay('sql/3.13.sql');
     await callProcedure(`BEGIN 图书丢失('20051001', '1005050'); END;`);
   });
 

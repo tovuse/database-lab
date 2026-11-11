@@ -19,8 +19,8 @@ const {
 describe('3.7 预约的插入逻辑', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('sql/3.7_预约插入.sql');
+    await replay('answers/00.sql');
+    await replay('sql/3.7.sql');
   });
 
   after(async () => {
@@ -34,7 +34,7 @@ describe('3.7 预约的插入逻辑', () => {
 
   it('全部借出时应能预约成功', async () => {
     // 先把这个 ISBN 对应的图书全部标成已借出，制造「无书可借」的局面
-    await replay('answers/3.7_把书全借出.sql');
+    await replay('answers/3.7_seed.sql');
     await callProcedure(`BEGIN 图书预约(200, '20051001', '9787508040110'); END;`);
     const n = await scalar(
       `SELECT COUNT(*) FROM 预约 WHERE 预约流水号 = 200`

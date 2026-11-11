@@ -21,7 +21,7 @@ describe('4.15 查对象权限', () => {
 
   before(async () => {
     await loadCourseBaseline();
-    results = await runMultiQueryFileAsCourse('sql/4.15_查对象权限.sql');
+    results = await runMultiQueryFileAsCourse('sql/4.15.sql');
     hit = results.find((r) => /(user|dba)_tab_privs/i.test(r.sql));
     isDba = hit ? /\bdba_tab_privs\b/i.test(hit.sql) : false;
     expected = await queryAsCourse(

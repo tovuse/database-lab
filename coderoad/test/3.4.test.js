@@ -14,9 +14,9 @@ const {
 describe('3.4 调用借书存储过程', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('answers/3.3_借书改图书状态.sql');  // 前置：标准答案的过程
-    await replay('sql/3.4_调用借书.sql');            // 学生这一关：调用
+    await replay('answers/00.sql');
+    await replay('answers/3.3.sql');  // 前置：标准答案的过程
+    await replay('sql/3.4.sql');            // 学生这一关：调用
   });
 
   after(async () => {

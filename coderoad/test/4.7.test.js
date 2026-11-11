@@ -12,7 +12,7 @@ describe('4.7 写全库导出骨架', () => {
   let parsed;
 
   before(async () => {
-    parsed = parsePumpCommandLoose('sql/4.7_全库导出骨架.sh', 'expdp');
+    parsed = parsePumpCommandLoose('sql/4.7.sh', 'expdp');
   });
 
   after(async () => {

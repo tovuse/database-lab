@@ -13,7 +13,7 @@ const {
 describe('4.4 删掉预约表', () => {
   before(async () => {
     await loadCourseBaseline();
-    await replayAsCourse('sql/4.4_删表.sql');
+    await replayAsCourse('sql/4.4.sql');
   });
 
   after(async () => {

@@ -5,10 +5,10 @@ describe('1.6 建「书目」表（含外键）', () => {
   before(async () => {
     await resetSchema();
     await replayAll([
-      'answers/1.3_图书分类.sql', 'answers/1.4_图书分类主键.sql',
-      'answers/1.5_罚款分类.sql',
+      'answers/1.3.sql', 'answers/1.4.sql',
+      'answers/1.5.sql',
     ]);
-    await replay('sql/1.6_书目表.sql');
+    await replay('sql/1.6.sql');
   });
   after(async () => { await closeAll(); });
 

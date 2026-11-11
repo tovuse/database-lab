@@ -16,9 +16,9 @@ const {
 describe('3.9 还书补归还日期', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('answers/3.8_造一条未还记录.sql');
-    await replay('sql/3.9_还书补归还日期.sql');
+    await replay('answers/00.sql');
+    await replay('answers/3.8_seed.sql');
+    await replay('sql/3.9.sql');
     await callProcedure(`BEGIN 还书('20051001', '1005050', 1); END;`);
   });
 

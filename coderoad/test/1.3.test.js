@@ -15,7 +15,7 @@ const {
 describe('1.3 建「图书分类」表', () => {
   before(async () => {
     await resetSchema();
-    await replay('sql/1.3_图书分类.sql');
+    await replay('sql/1.3.sql');
   });
 
   after(async () => {

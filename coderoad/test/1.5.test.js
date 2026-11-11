@@ -4,7 +4,7 @@ const { resetSchema, replay, assertTable, assertColumn, assertConstraint, expect
 describe('1.5 建「罚款分类」表', () => {
   before(async () => {
     await resetSchema();
-    await replay('sql/1.5_罚款分类.sql');
+    await replay('sql/1.5.sql');
   });
   after(async () => { await closeAll(); });
 

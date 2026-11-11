@@ -5,9 +5,9 @@ describe('1.13 插入「罚款分类」数据（3 行）', () => {
   before(async () => {
     await resetSchema();
     await replayAll([
-      'answers/1.5_罚款分类.sql',
+      'answers/1.5.sql',
     ]);
-    await replay('sql/1.13_插罚款分类.sql');
+    await replay('sql/1.13.sql');
   });
   after(async () => { await closeAll(); });
 

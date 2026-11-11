@@ -26,7 +26,7 @@ describe('4.25 撤销权限并删除用户', () => {
       views: ['VIEW_READER'],
     });
     await loadCourseBaseline();
-    await replayAsCourse('answers/4.20_建视图.sql');
+    await replayAsCourse('answers/4.20.sql');
 
     // 造起点：用户 + 授权
     await execAsCourse(
@@ -35,7 +35,7 @@ describe('4.25 撤销权限并删除用户', () => {
     await execAsCourse('GRANT CONNECT TO 用户_USER1');
     await execAsCourse('GRANT SELECT ON VIEW_READER TO 用户_USER1');
 
-    await replayAsCourse('sql/4.25_撤销并删除用户.sql');
+    await replayAsCourse('sql/4.25.sql');
   });
 
   after(async () => {

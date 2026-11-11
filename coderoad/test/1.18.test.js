@@ -5,13 +5,13 @@ describe('1.18 插入「预约」数据（1 行）', () => {
   before(async () => {
     await resetSchema();
     await replayAll([
-      'answers/1.3_图书分类.sql', 'answers/1.4_图书分类主键.sql',
-      'answers/1.6_书目表.sql', 'answers/1.9_读者表.sql',
-      'answers/1.11_预约表.sql',
-      'answers/1.12_插图书分类.sql', 'answers/1.14_插书目.sql',
-      'answers/1.16_插读者.sql',
+      'answers/1.3.sql', 'answers/1.4.sql',
+      'answers/1.6.sql', 'answers/1.9.sql',
+      'answers/1.11.sql',
+      'answers/1.12.sql', 'answers/1.14.sql',
+      'answers/1.16.sql',
     ]);
-    await replay('sql/1.18_插预约.sql');
+    await replay('sql/1.18.sql');
   });
   after(async () => { await closeAll(); });
 

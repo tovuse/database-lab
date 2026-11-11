@@ -4,13 +4,13 @@ const { resetSchema, replay, assertQueryEquals, closeAll } = require('./utils');
 describe('2.14 查询借阅及罚款分类信息（左外连接）', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
+    await replay('answers/00.sql');
   });
   after(async () => { await closeAll(); });
 
   it('没罚款的记录也要保留（罚款列为空）', async () => {
     await assertQueryEquals(
-      'sql/2.14_罚款左外连接.sql',
+      'sql/2.14.sql',
       `SELECT l.借阅流水号, l.借书证号, l.图书编号, f.罚款名称, f.罚金
          FROM 借阅 l LEFT JOIN 罚款分类 f ON l.罚款分类号 = f.罚款分类号
         ORDER BY l.借阅流水号`,

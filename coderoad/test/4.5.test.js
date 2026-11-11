@@ -12,7 +12,7 @@ describe('4.5 写 impdp 命令骨架', () => {
   let parsed;
 
   before(async () => {
-    parsed = parsePumpCommandLoose('sql/4.5_导入骨架.sh', 'impdp');
+    parsed = parsePumpCommandLoose('sql/4.5.sh', 'impdp');
   });
 
   after(async () => {

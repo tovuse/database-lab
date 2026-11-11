@@ -5,11 +5,11 @@ describe('1.14 插入「书目」数据（4 行）', () => {
   before(async () => {
     await resetSchema();
     await replayAll([
-      'answers/1.3_图书分类.sql', 'answers/1.4_图书分类主键.sql',
-      'answers/1.6_书目表.sql',
-      'answers/1.12_插图书分类.sql',
+      'answers/1.3.sql', 'answers/1.4.sql',
+      'answers/1.6.sql',
+      'answers/1.12.sql',
     ]);
-    await replay('sql/1.14_插书目.sql');
+    await replay('sql/1.14.sql');
   });
   after(async () => { await closeAll(); });
 

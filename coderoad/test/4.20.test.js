@@ -14,7 +14,7 @@ const {
 describe('4.20 建视图 VIEW_READER', () => {
   before(async () => {
     await loadCourseBaseline();
-    await replayAsCourse('sql/4.20_建视图.sql');
+    await replayAsCourse('sql/4.20.sql');
   });
 
   after(async () => {

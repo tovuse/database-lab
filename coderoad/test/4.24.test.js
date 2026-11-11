@@ -31,7 +31,7 @@ describe('4.24 手工解锁用户', () => {
     // 判题器制造起点：账号被锁
     await execAsCourse('ALTER USER 用户_USER1 ACCOUNT LOCK');
 
-    await replayAsCourse('sql/4.24_手工解锁.sql');
+    await replayAsCourse('sql/4.24.sql');
   });
 
   after(async () => {

@@ -17,7 +17,7 @@ describe('4.21 建 USER1 并授 CONNECT', () => {
   before(async () => {
     await resetSecurityObjects({ users: ['用户_USER1'], roles: [], profiles: [] });
     await loadCourseBaseline();
-    await replayAsCourse('sql/4.21_建用户并连库.sql');
+    await replayAsCourse('sql/4.21.sql');
   });
 
   after(async () => {

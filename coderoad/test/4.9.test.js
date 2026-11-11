@@ -13,7 +13,7 @@ const {
 describe('4.9 开启行移动', () => {
   before(async () => {
     await loadCourseBaseline();
-    await replayAsCourse('sql/4.9_开启行移动.sql');
+    await replayAsCourse('sql/4.9.sql');
   });
 
   after(async () => {

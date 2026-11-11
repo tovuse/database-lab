@@ -4,8 +4,8 @@ const { resetSchema, replay, query, scalar, closeAll } = require('./utils');
 describe('1.19 增：向「图书分类」插入一行', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('sql/1.19_插入分类.sql');
+    await replay('answers/00.sql');
+    await replay('sql/1.19.sql');
   });
   after(async () => { await closeAll(); });
 

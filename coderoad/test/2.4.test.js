@@ -9,7 +9,7 @@ const {
 describe('2.4 统计从未借过书的读者人数', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
+    await replay('answers/00.sql');
   });
 
   after(async () => {
@@ -18,7 +18,7 @@ describe('2.4 统计从未借过书的读者人数', () => {
 
   it('应返回一个数字，且与标准答案一致', async () => {
     await assertQueryEquals(
-      'sql/2.4_从未借书.sql',
+      'sql/2.4.sql',
       `SELECT COUNT(*) FROM 读者 r
         WHERE NOT EXISTS (SELECT 1 FROM 借阅 l WHERE l.借书证号 = r.借书证号)`,
       {

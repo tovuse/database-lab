@@ -15,8 +15,8 @@ describe('4.17 授书目查询权限', () => {
   before(async () => {
     await resetSecurityObjects({ users: [], roles: ['图书管理员'], profiles: [] });
     await loadCourseBaseline();
-    await replayAsCourse('answers/4.16_建角色.sql');  // 前置：角色
-    await replayAsCourse('sql/4.17_授书目查询.sql');  // 本关
+    await replayAsCourse('answers/4.16.sql');  // 前置：角色
+    await replayAsCourse('sql/4.17.sql');  // 本关
   });
 
   after(async () => {

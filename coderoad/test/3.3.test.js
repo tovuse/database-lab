@@ -17,8 +17,8 @@ const {
 describe('3.3 借书改图书状态并加异常处理', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('sql/3.3_借书改图书状态.sql');
+    await replay('answers/00.sql');
+    await replay('sql/3.3.sql');
     await callProcedure(`BEGIN 借书(100, '20051001', '1005050'); END;`);
   });
 

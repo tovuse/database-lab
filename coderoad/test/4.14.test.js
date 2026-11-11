@@ -21,7 +21,7 @@ describe('4.14 查系统权限', () => {
 
   before(async () => {
     await loadCourseBaseline();
-    results = await runMultiQueryFileAsCourse('sql/4.14_查系统权限.sql');
+    results = await runMultiQueryFileAsCourse('sql/4.14.sql');
     hit = results.find((r) => /(user|dba)_sys_privs/i.test(r.sql));
     isDba = hit ? /\bdba_sys_privs\b/i.test(hit.sql) : false;
     expected = await queryAsCourse(

@@ -15,8 +15,8 @@ const {
 describe('3.5 写预约过程骨架', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('sql/3.5_预约骨架.sql');
+    await replay('answers/00.sql');
+    await replay('sql/3.5.sql');
   });
 
   after(async () => {

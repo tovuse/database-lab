@@ -18,7 +18,7 @@ describe('4.8 全库方式导出', () => {
 
   before(async () => {
     await loadCourseBaseline();
-    parsed = parsePumpCommand('sql/4.8_全库导出.sh', 'expdp');
+    parsed = parsePumpCommand('sql/4.8.sh', 'expdp');
     cleanDumpFiles(parsed.params.DUMPFILE.replace(/\.dmp$/, ''));
     cleanDumpFiles(parsed.params.LOGFILE.replace(/\.log$/, ''));
     runPump(parsed);

@@ -16,8 +16,8 @@ const {
 describe('3.6 预约的可借判断', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('sql/3.6_预约判断.sql');
+    await replay('answers/00.sql');
+    await replay('sql/3.6.sql');
   });
 
   after(async () => {

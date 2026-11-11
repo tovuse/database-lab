@@ -19,7 +19,7 @@ const {
 describe('4.10 删掉预约数据', () => {
   before(async () => {
     await loadCourseBaseline();
-    await replayAsCourse('sql/4.10_删预约数据.sql');
+    await replayAsCourse('sql/4.10.sql');
   });
 
   after(async () => {
@@ -40,7 +40,7 @@ describe('4.10 删掉预约数据', () => {
   });
 
   it('文件里应有 COMMIT', async () => {
-    const file = path.join(WORKSPACE, 'sql/4.10_删预约数据.sql');
+    const file = path.join(WORKSPACE, 'sql/4.10.sql');
     const text = fs.readFileSync(file, 'utf8');
     // 去掉注释行再找，避免把注释里提到的 COMMIT 当成提交语句
     const code = text

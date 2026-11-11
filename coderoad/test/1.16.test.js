@@ -5,9 +5,9 @@ describe('1.16 插入「读者」数据（5 行）', () => {
   before(async () => {
     await resetSchema();
     await replayAll([
-      'answers/1.9_读者表.sql',
+      'answers/1.9.sql',
     ]);
-    await replay('sql/1.16_插读者.sql');
+    await replay('sql/1.16.sql');
   });
   after(async () => { await closeAll(); });
 

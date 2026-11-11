@@ -15,8 +15,8 @@ const {
 describe('1.4 给「图书分类」加主键', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/1.3_图书分类.sql'); // 前置关卡的标准答案，保证起始状态正确
-    await replay('sql/1.4_图书分类主键.sql'); // 学生这一关写的
+    await replay('answers/1.3.sql'); // 前置关卡的标准答案，保证起始状态正确
+    await replay('sql/1.4.sql'); // 学生这一关写的
   });
 
   after(async () => {

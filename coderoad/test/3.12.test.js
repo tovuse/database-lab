@@ -16,8 +16,8 @@ const {
 describe('3.12 建借阅触发器', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('sql/3.12_借阅触发器.sql');
+    await replay('answers/00.sql');
+    await replay('sql/3.12.sql');
   });
 
   after(async () => {

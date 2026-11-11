@@ -22,7 +22,7 @@ describe('4.13 查角色权限', () => {
 
   before(async () => {
     await loadCourseBaseline();
-    results = await runMultiQueryFileAsCourse('sql/4.13_查角色权限.sql');
+    results = await runMultiQueryFileAsCourse('sql/4.13.sql');
     hit = results.find((r) => /(user|dba)_role_privs/i.test(r.sql));
     isDba = hit ? /\bdba_role_privs\b/i.test(hit.sql) : false;
     expected = await queryAsCourse(

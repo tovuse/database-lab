@@ -17,9 +17,9 @@ const {
 describe('3.11 建简化借书存储过程', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('answers/3.10_序列.sql');
-    await replay('sql/3.11_简化借书过程.sql');
+    await replay('answers/00.sql');
+    await replay('answers/3.10.sql');
+    await replay('sql/3.11.sql');
   });
 
   after(async () => {

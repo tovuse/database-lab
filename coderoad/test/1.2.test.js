@@ -30,7 +30,7 @@ describe('1.2 创建你自己的数据库用户', () => {
     });
 
     // 重放学生写的语句（CREATE USER + GRANT）
-    await replay('sql/1.2_建用户.sql');
+    await replay('sql/1.2.sql');
   });
 
   after(async () => {

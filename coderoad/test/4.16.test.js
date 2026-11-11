@@ -15,7 +15,7 @@ describe('4.16 建图书管理员角色', () => {
   before(async () => {
     await resetSecurityObjects({ users: [], roles: ['图书管理员'], profiles: [] });
     await loadCourseBaseline();
-    await replayAsCourse('sql/4.16_建角色.sql');
+    await replayAsCourse('sql/4.16.sql');
   });
 
   after(async () => {

@@ -18,15 +18,15 @@ describe('4.18 授过程执行权限', () => {
     await resetSecurityObjects({ users: [], roles: ['图书管理员'], profiles: [] });
     await loadCourseBaseline();
     for (const f of [
-      'answers/3.3_借书改图书状态.sql',
-      'answers/3.7_预约插入.sql',
-      'answers/3.9_还书补归还日期.sql',
+      'answers/3.3.sql',
+      'answers/3.7.sql',
+      'answers/3.9.sql',
     ]) {
       await replayAsCourse(f);
     }
-    await replayAsCourse('answers/4.16_建角色.sql');  // 前置：角色
-    await replayAsCourse('answers/4.17_授书目查询.sql');
-    await replayAsCourse('sql/4.18_授过程执行.sql');  // 本关
+    await replayAsCourse('answers/4.16.sql');  // 前置：角色
+    await replayAsCourse('answers/4.17.sql');
+    await replayAsCourse('sql/4.18.sql');  // 本关
   });
 
   after(async () => {

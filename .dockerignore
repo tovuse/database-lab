@@ -32,7 +32,5 @@ scripts
 # Keep only the baseline SQL from answers/.
 # Docker cannot re-include a file whose parent directory was excluded
 # wholesale, so exclude the directory *contents* and then re-add.
-# The baseline file has a non-ASCII name (00_<CJK>.sql); it is matched
-# by the ASCII-safe pattern "00_*.sql" instead of spelling it out.
 answers/*
-!answers/00_*.sql
+!answers/00.sql

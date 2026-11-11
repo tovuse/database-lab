@@ -5,9 +5,9 @@ describe('1.12 插入「图书分类」数据（3 行）', () => {
   before(async () => {
     await resetSchema();
     await replayAll([
-      'answers/1.3_图书分类.sql', 'answers/1.4_图书分类主键.sql',
+      'answers/1.3.sql', 'answers/1.4.sql',
     ]);
-    await replay('sql/1.12_插图书分类.sql');
+    await replay('sql/1.12.sql');
   });
   after(async () => { await closeAll(); });
 

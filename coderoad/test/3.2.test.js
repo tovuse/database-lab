@@ -18,8 +18,8 @@ const {
 describe('3.2 补全借书的插入逻辑', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('sql/3.2_借书插入借阅.sql');
+    await replay('answers/00.sql');
+    await replay('sql/3.2.sql');
     await callProcedure(`BEGIN 借书(100, '20051001', '1005050'); END;`);
   });
 

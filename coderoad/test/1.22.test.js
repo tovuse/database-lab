@@ -4,8 +4,8 @@ const { resetSchema, replay, assertConstraint, expectError, exec, scalar, closeA
 describe('1.22 给「读者」的电话加 CHECK 约束（11 位数字）', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('sql/1.22_电话约束.sql');
+    await replay('answers/00.sql');
+    await replay('sql/1.22.sql');
   });
   after(async () => { await closeAll(); });
 

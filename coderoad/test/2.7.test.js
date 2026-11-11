@@ -4,13 +4,13 @@ const { resetSchema, replay, assertQueryEquals, closeAll } = require('./utils');
 describe('2.7 查询 20061234 借阅未还的图书', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
+    await replay('answers/00.sql');
   });
   after(async () => { await closeAll(); });
 
   it('结果应与标准答案一致', async () => {
     await assertQueryEquals(
-      'sql/2.7_指定读者未还.sql',
+      'sql/2.7.sql',
       `SELECT t.图书编号, b.书名
          FROM 借阅 l
          JOIN 图书 t ON l.图书编号 = t.图书编号

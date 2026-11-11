@@ -4,13 +4,13 @@ const { resetSchema, replay, assertQueryEquals, closeAll } = require('./utils');
 describe('2.13 查询各图书的罚款总数', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
+    await replay('answers/00.sql');
   });
   after(async () => { await closeAll(); });
 
   it('结果应与标准答案一致', async () => {
     await assertQueryEquals(
-      'sql/2.13_各图书罚款.sql',
+      'sql/2.13.sql',
       `SELECT l.图书编号, SUM(f.罚金) AS 罚款总数
          FROM 借阅 l JOIN 罚款分类 f ON l.罚款分类号 = f.罚款分类号
         GROUP BY l.图书编号

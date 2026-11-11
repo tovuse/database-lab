@@ -31,16 +31,16 @@ describe('4.19 用户 oper 借书', () => {
     await loadCourseBaseline();
     // 过程必须建在 COURSE schema（用户_oper 调的是 COURSE.借书）
     for (const f of [
-      'answers/3.3_借书改图书状态.sql',
-      'answers/3.7_预约插入.sql',
-      'answers/3.9_还书补归还日期.sql',
-      'answers/4.16_建角色.sql',
-      'answers/4.17_授书目查询.sql',
-      'answers/4.18_授过程执行.sql',
+      'answers/3.3.sql',
+      'answers/3.7.sql',
+      'answers/3.9.sql',
+      'answers/4.16.sql',
+      'answers/4.17.sql',
+      'answers/4.18.sql',
     ]) {
       await replayAsCourse(f);
     }
-    await replayAsCourse('sql/4.19_用户oper借书.sql');
+    await replayAsCourse('sql/4.19.sql');
   });
 
   after(async () => {

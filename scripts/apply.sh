@@ -8,7 +8,7 @@
 #   这个脚本就是干这个的。
 #
 # 用法：
-#   ./scripts/apply.sh sql/1.3_图书分类.sql
+#   ./scripts/apply.sh sql/1.3.sql
 #   ./scripts/apply.sh sql/*.sql          # 按文件名顺序全跑一遍
 set -euo pipefail
 

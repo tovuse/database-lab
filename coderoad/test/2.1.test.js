@@ -13,7 +13,7 @@ const {
 describe('2.1 查询红楼梦当前可借的图书', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
+    await replay('answers/00.sql');
   });
 
   after(async () => {
@@ -22,7 +22,7 @@ describe('2.1 查询红楼梦当前可借的图书', () => {
 
   it('结果应与标准答案一致（按图书编号排序）', async () => {
     await assertQueryEquals(
-      'sql/2.1_可借红楼梦.sql',
+      'sql/2.1.sql',
       `SELECT t.图书编号, b.ISBN, b.书名, b.作者, b.出版单位, b.单价
          FROM 图书 t JOIN 书目 b ON t.ISBN = b.ISBN
         WHERE b.书名 = '红楼梦' AND t.是否借出 = '否'

@@ -7,15 +7,15 @@
 --
 -- 怎么用：
 --   在终端里执行
---     ./scripts/apply.sh answers/00_基线.sql
+--     ./scripts/apply.sh answers/00.sql
 --   或者直接
---     sqlplus -S COURSE/course@//localhost:1521/FREEPDB1 @answers/00_基线.sql
+--     sqlplus -S COURSE/course@//localhost:1521/FREEPDB1 @answers/00.sql
 --
 -- ⚠️ 这会重建全部 7 张表。如果 COURSE 库里已有同名表会报 ORA-00955，
 --    先跑 ./scripts/reset.sh 清空再执行本脚本。
 --
--- 内容与 answers/00_基线.sql 完全一致（7 表 + 指导书 3.1.4 的数据）。
--- 维护时只改 answers/00_基线.sql 这一个文件，本文件是说明用途。
+-- 内容与 answers/00.sql 完全一致（7 表 + 指导书 3.1.4 的数据）。
+-- 维护时只改 answers/00.sql 这一个文件，本文件是说明用途。
 -- =====================================================================
 
--- 本文件不含 SQL。请执行：./scripts/apply.sh answers/00_基线.sql
+-- 本文件不含 SQL。请执行：./scripts/apply.sh answers/00.sql

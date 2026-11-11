@@ -5,15 +5,15 @@ describe('1.17 插入「借阅」数据（6 行）', () => {
   before(async () => {
     await resetSchema();
     await replayAll([
-      'answers/1.3_图书分类.sql', 'answers/1.4_图书分类主键.sql',
-      'answers/1.5_罚款分类.sql', 'answers/1.6_书目表.sql',
-      'answers/1.7_图书表.sql', 'answers/1.9_读者表.sql',
-      'answers/1.10_借阅表.sql',
-      'answers/1.12_插图书分类.sql', 'answers/1.13_插罚款分类.sql',
-      'answers/1.14_插书目.sql', 'answers/1.15_插图书.sql',
-      'answers/1.16_插读者.sql',
+      'answers/1.3.sql', 'answers/1.4.sql',
+      'answers/1.5.sql', 'answers/1.6.sql',
+      'answers/1.7.sql', 'answers/1.9.sql',
+      'answers/1.10.sql',
+      'answers/1.12.sql', 'answers/1.13.sql',
+      'answers/1.14.sql', 'answers/1.15.sql',
+      'answers/1.16.sql',
     ]);
-    await replay('sql/1.17_插借阅.sql');
+    await replay('sql/1.17.sql');
   });
   after(async () => { await closeAll(); });
 

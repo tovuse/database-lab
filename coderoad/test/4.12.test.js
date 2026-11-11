@@ -21,7 +21,7 @@ describe('4.12 建用户并授予 CONNECT/RESOURCE', () => {
   before(async () => {
     await resetSecurityObjects({ users: ['ZHANGWEI'], roles: [], profiles: [] });
     await loadCourseBaseline();
-    await replayAsCourse('sql/4.12_建用户并授权.sql');
+    await replayAsCourse('sql/4.12.sql');
 
     // 找出学生新建的那个用户（讲义要求叫 zhangwei）
     const rows = await queryAsCourse(

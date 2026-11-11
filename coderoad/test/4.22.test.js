@@ -26,9 +26,9 @@ describe('4.22 只授视图查询权限', () => {
       views: ['VIEW_READER'],
     });
     await loadCourseBaseline();
-    await replayAsCourse('answers/4.20_建视图.sql');      // 前置：视图
-    await replayAsCourse('answers/4.21_建用户并连库.sql'); // 前置：用户 + CONNECT
-    await replayAsCourse('sql/4.22_授视图查询.sql');       // 本关
+    await replayAsCourse('answers/4.20.sql');      // 前置：视图
+    await replayAsCourse('answers/4.21.sql'); // 前置：用户 + CONNECT
+    await replayAsCourse('sql/4.22.sql');       // 本关
   });
 
   after(async () => {

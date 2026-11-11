@@ -41,7 +41,7 @@ describe('4.11 闪回恢复预约表', () => {
     afterDelete = Number(await scalarAsCourse(`SELECT COUNT(*) FROM 预约`));
 
     // 本关：学生的 FLASHBACK
-    await replayAsCourse('sql/4.11_闪回预约表.sql');
+    await replayAsCourse('sql/4.11.sql');
   });
 
   after(async () => {
@@ -78,7 +78,7 @@ describe('4.11 闪回恢复预约表', () => {
   });
 
   it('文件里应真的写了 FLASHBACK TABLE', async () => {
-    const file = path.join(WORKSPACE, 'sql/4.11_闪回预约表.sql');
+    const file = path.join(WORKSPACE, 'sql/4.11.sql');
     const text = fs.readFileSync(file, 'utf8');
     assert.ok(
       /FLASHBACK\s+TABLE\s+预约/i.test(text),

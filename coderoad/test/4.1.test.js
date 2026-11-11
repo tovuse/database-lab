@@ -15,7 +15,7 @@ describe('4.1 写 expdp 命令骨架', () => {
   let parsed;
 
   before(async () => {
-    parsed = parsePumpCommandLoose('sql/4.1_导出骨架.sh', 'expdp');
+    parsed = parsePumpCommandLoose('sql/4.1.sh', 'expdp');
   });
 
   after(async () => {

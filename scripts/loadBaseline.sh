@@ -33,7 +33,7 @@ SQL
 echo "▶ 装入 7 张表 + 指导书原始数据……"
 if ! sqlplus -S -L "$CONN" <<SQL; then
 WHENEVER SQLERROR EXIT FAILURE
-@answers/00_基线.sql
+@answers/00.sql
 EXIT
 SQL
   echo "❌ 基线数据装载失败（上面有 Oracle 报错）" >&2

@@ -6,10 +6,10 @@ describe('1.8 插入一本测试图书（验证默认值）', () => {
     await resetSchema();
     // 前置表结构逐个重放：图书 表必须用学生上一关自己写的文件，
     // 这样「默认值」验的是学生建的表，不是判题器抄的标准答案
-    await replay('answers/1.3_图书分类.sql');
-    await replay('answers/1.4_图书分类主键.sql');
-    await replay('answers/1.6_书目表.sql');
-    await replay('sql/1.7_图书表.sql');
+    await replay('answers/1.3.sql');
+    await replay('answers/1.4.sql');
+    await replay('answers/1.6.sql');
+    await replay('sql/1.7.sql');
 
     // 判题器自己准备外键需要的上级数据（图书分类 200 + 书目 7040195836），
     // 学生只需要写 INSERT INTO 图书 这一条
@@ -22,7 +22,7 @@ describe('1.8 插入一本测试图书（验证默认值）', () => {
     // 单独包一层：这一步最常见的失败是 1.7 漏了 DEFAULT '否'，报 ORA-01400，
     // 原生错误信息不会告诉学生该回去改上一关，所以在这里补一句
     try {
-      await replay('sql/1.8_测试图书.sql');
+      await replay('sql/1.8.sql');
     } catch (e) {
       const msg = e.message || String(e);
       throw new Error(

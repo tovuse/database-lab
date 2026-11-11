@@ -25,7 +25,7 @@ describe('4.3 用 expdp 导出预约表', () => {
 
   before(async () => {
     await loadCourseBaseline();
-    parsed = parsePumpCommand('sql/4.3_导出预约表.sh', 'expdp');
+    parsed = parsePumpCommand('sql/4.3.sh', 'expdp');
     // 清掉上一次的产物，确保看到的是学生这次导出来的文件
     cleanDumpFiles(parsed.params.DUMPFILE.replace(/\.dmp$/, ''));
     cleanDumpFiles(parsed.params.LOGFILE.replace(/\.log$/, ''));

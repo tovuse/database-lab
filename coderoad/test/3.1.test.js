@@ -16,8 +16,8 @@ const {
 describe('3.1 写借书过程骨架', () => {
   before(async () => {
     await resetSchema();
-    await replay('answers/00_基线.sql');
-    await replay('sql/3.1_借书骨架.sql');
+    await replay('answers/00.sql');
+    await replay('sql/3.1.sql');
   });
 
   after(async () => {

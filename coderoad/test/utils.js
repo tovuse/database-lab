@@ -773,7 +773,7 @@ async function runQueryFileAsCourse(relPath) {
 /**
  * 把 COURSE 库重建成基线。
  * 不用 scripts/loadBaseline.sh：那脚本依赖 sqlplus，判题进程所在环境不一定有。
- * 这里用 oracledb 直接清对象 + 重放 answers/00_基线.sql，容器内外都能跑。
+ * 这里用 oracledb 直接清对象 + 重放 answers/00.sql，容器内外都能跑。
  */
 async function loadCourseBaseline() {
   const lists = [
@@ -796,7 +796,7 @@ async function loadCourseBaseline() {
       await execAsCourse(stmt).catch(() => {});
     }
   }
-  await replayAsCourse('answers/00_基线.sql');
+  await replayAsCourse('answers/00.sql');
 }
 
 /** 断言 COURSE 库里有这张表 */

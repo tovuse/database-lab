@@ -21,7 +21,7 @@ describe('4.23 建 PROFILE 限时锁定', () => {
   before(async () => {
     await resetSecurityObjects({ users: [], roles: [], profiles: ['限时锁定'] });
     await loadCourseBaseline();
-    await replayAsCourse('sql/4.23_建PROFILE.sql');
+    await replayAsCourse('sql/4.23.sql');
   });
 
   after(async () => {
