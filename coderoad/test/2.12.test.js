@@ -1,7 +1,7 @@
 const assert = require('node:assert');
 const { loadUpTo, replay, assertQueryEquals, closeAll } = require('./utils');
 
-describe('2.12 检索书名以 Internet 开头的图书', () => {
+describe('2.12: 检索书名以 Internet 开头的图书', () => {
   before(async () => {
     await loadUpTo('2.12');
     // 基线里没有 Internet 的书，答案会是 0 行，那样写 WHERE 1=0 也能过。

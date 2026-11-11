@@ -15,7 +15,7 @@ const {
  * 判题不锁死拼音——只要求「不是 COURSE、不是 TESTER 的新建用户」，
  * 并且它确实拿到了 CONNECT 和 RESOURCE 两个角色。
  */
-describe('4.12 建用户并授予 CONNECT/RESOURCE', () => {
+describe('4.12: 建用户并授予 CONNECT/RESOURCE', () => {
   let newUser;
 
   before(async () => {

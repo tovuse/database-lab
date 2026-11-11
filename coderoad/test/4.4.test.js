@@ -10,7 +10,7 @@ const {
  * 4.4 删掉「预约」表
  * 判题：重放基线 → 跑学生这一关 → 断言 预约 不存在了，而且别的表没被误删。
  */
-describe('4.4 删掉预约表', () => {
+describe('4.4: 删掉预约表', () => {
   before(async () => {
     await loadCourseBaseline();
     await replayAsCourse('sql/4.4.sql');

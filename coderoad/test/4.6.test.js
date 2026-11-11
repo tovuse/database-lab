@@ -28,7 +28,7 @@ const {
  *   这样 DUMPFILE 写错（拼错、用了别的文件名）会直接暴露，
  *   而不是被判题器偷偷纠正过去。
  */
-describe('4.6 用 impdp 导入预约表', () => {
+describe('4.6: 用 impdp 导入预约表', () => {
   let parsed;
 
   before(async () => {

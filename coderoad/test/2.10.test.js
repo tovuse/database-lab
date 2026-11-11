@@ -1,7 +1,7 @@
 const assert = require('node:assert');
 const { loadUpTo, assertQueryEquals, closeAll } = require('./utils');
 
-describe('2.10 查询每类图书的册数和平均单价', () => {
+describe('2.10: 查询每类图书的册数和平均单价', () => {
   before(async () => {
     await loadUpTo('2.10');
   });

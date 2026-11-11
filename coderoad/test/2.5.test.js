@@ -5,7 +5,7 @@ const {
   closeAll,
 } = require('./utils');
 
-describe('2.5 借阅未还的读者和图书', () => {
+describe('2.5: 借阅未还的读者和图书', () => {
   before(async () => {
     await loadUpTo('2.5');
   });

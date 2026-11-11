@@ -1,7 +1,7 @@
 const assert = require('node:assert');
 const { loadUpTo, assertQueryEquals, closeAll } = require('./utils');
 
-describe('2.7 查询 20061234 借阅未还的图书', () => {
+describe('2.7: 查询 20061234 借阅未还的图书', () => {
   before(async () => {
     await loadUpTo('2.7');
   });

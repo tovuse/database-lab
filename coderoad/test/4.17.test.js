@@ -11,7 +11,7 @@ const {
  * 4.17 给角色授「书目」的 SELECT
  * 判题：角色对 书目 有 SELECT。
  */
-describe('4.17 授书目查询权限', () => {
+describe('4.17: 授书目查询权限', () => {
   before(async () => {
     await resetSecurityObjects({ users: [], roles: ['图书管理员'], profiles: [] });
     await loadCourseBaseline();

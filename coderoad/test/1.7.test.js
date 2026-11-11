@@ -4,7 +4,7 @@ const {
   assertConstraint, closeAll,
 } = require('./utils');
 
-describe('1.7 建「图书」表', () => {
+describe('1.7: 建「图书」表', () => {
   before(async () => {
     await loadUpTo('1.7');
   });

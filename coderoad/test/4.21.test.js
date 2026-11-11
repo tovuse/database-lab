@@ -13,7 +13,7 @@ const {
  * 判题：用户存在、拿到 CONNECT、能真的登录。
  * 这一步不检查视图权限（那是下一关）。
  */
-describe('4.21 建 USER1 并授 CONNECT', () => {
+describe('4.21: 建 USER1 并授 CONNECT', () => {
   before(async () => {
     await resetSecurityObjects({ users: ['用户_USER1'], roles: [], profiles: [] });
     await loadCourseBaseline();

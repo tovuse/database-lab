@@ -5,7 +5,7 @@ const {
   closeAll,
 } = require('./utils');
 
-describe('2.3 各出版社的最高单价、平均单价', () => {
+describe('2.3: 各出版社的最高单价、平均单价', () => {
   before(async () => {
     await loadUpTo('2.3');
   });

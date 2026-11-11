@@ -1,7 +1,7 @@
 const assert = require('node:assert');
 const { loadUpTo, assertConstraint, expectError, exec, scalar, closeAll } = require('./utils');
 
-describe('1.24 给「图书」的借出状态加 CHECK 约束（只能是「是」或「否」）', () => {
+describe('1.24: 给「图书」的借出状态加 CHECK 约束（只能是「是」或「否」）', () => {
   before(async () => {
     await loadUpTo('1.24');
   });

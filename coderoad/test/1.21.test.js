@@ -1,7 +1,7 @@
 const assert = require('node:assert');
 const { loadUpTo, scalar, closeAll } = require('./utils');
 
-describe('1.21 删：删掉分类 400', () => {
+describe('1.21: 删：删掉分类 400', () => {
   before(async () => {
     // 前置链自动完成「增」（answers/1.19.sql）和「改」（answers/1.20.sql）
     await loadUpTo('1.21');

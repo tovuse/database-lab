@@ -13,7 +13,7 @@ const {
  * 4.8 按用户（schema）方式导出整个库
  * 判题：SCHEMAS=COURSE、转储文件生成、日志成功、日志里 7 张表都在。
  */
-describe('4.8 全库方式导出', () => {
+describe('4.8: 全库方式导出', () => {
   let parsed;
 
   before(async () => {

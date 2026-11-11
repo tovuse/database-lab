@@ -1,7 +1,7 @@
 const assert = require('node:assert');
 const { loadUpTo, assertTable, assertColumn, assertConstraint, expectError, closeAll } = require('./utils');
 
-describe('1.9 建「读者」表', () => {
+describe('1.9: 建「读者」表', () => {
   before(async () => {
     await loadUpTo('1.9');
   });

@@ -13,7 +13,7 @@ const {
  * COURSE 的系统权限来自 initdb 的 GRANT（CREATE USER / ALTER USER / …），
  * 不同环境条数不同，所以不硬比具体权限名。
  */
-describe('4.14 查系统权限', () => {
+describe('4.14: 查系统权限', () => {
   let results;
   let expected;
   let hit;

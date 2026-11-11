@@ -1,7 +1,7 @@
 const assert = require('node:assert');
 const { loadUpTo, assertRowCount, query, closeAll } = require('./utils');
 
-describe('1.18 插入「预约」数据（1 行）', () => {
+describe('1.18: 插入「预约」数据（1 行）', () => {
   before(async () => {
     await loadUpTo('1.18');
   });

@@ -13,7 +13,7 @@ const {
  * 前置：三个过程来自第 3 章，测试用 answers 里的标准版本补齐。
  * 角色授的是 COURSE.借书 这类对象，过程必须建在 COURSE schema 里。
  */
-describe('4.18 授过程执行权限', () => {
+describe('4.18: 授过程执行权限', () => {
   before(async () => {
     await resetSecurityObjects({ users: [], roles: ['图书管理员'], profiles: [] });
     await loadCourseBaseline();

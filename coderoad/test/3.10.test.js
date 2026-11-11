@@ -13,7 +13,7 @@ const {
  * 取 NEXTVAL 用 scalar（内部是数组格式），不要用 exec：
  * exec 默认返回对象格式，rows[0][0] 取不到值。
  */
-describe('3.10 建序列', () => {
+describe('3.10: 建序列', () => {
   before(async () => {
     await loadUpTo('3.10');
   });

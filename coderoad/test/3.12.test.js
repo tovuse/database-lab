@@ -12,7 +12,7 @@ const {
  * 3.12 借阅 INSERT 触发器
  * 判题：关键在「不通过过程、直接 INSERT」，看图书状态会不会自动变。
  */
-describe('3.12 建借阅触发器', () => {
+describe('3.12: 建借阅触发器', () => {
   before(async () => {
     await loadUpTo('3.12');
   });

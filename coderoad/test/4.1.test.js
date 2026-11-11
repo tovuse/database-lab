@@ -11,7 +11,7 @@ const {
  * 这一步的命令本来就缺 DUMPFILE / TABLES，跑起来必然报错，
  * 教学目标是「记住 expdp + 连接串 + DIRECTORY 这个开头」。
  */
-describe('4.1 写 expdp 命令骨架', () => {
+describe('4.1: 写 expdp 命令骨架', () => {
   let parsed;
 
   before(async () => {

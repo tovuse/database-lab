@@ -10,7 +10,7 @@ const {
  * 1.3 建「图书分类」表
  * 判题：清空 TESTER → 重放学生的 1.3 → 断言表和三列
  */
-describe('1.3 建「图书分类」表', () => {
+describe('1.3: 建「图书分类」表', () => {
   before(async () => {
     await loadUpTo('1.3');
   });

@@ -8,7 +8,7 @@ const {
  * 4.5 写出 impdp 命令的骨架
  * 只做语法检查：参数还没补全，不真的跑导入。
  */
-describe('4.5 写 impdp 命令骨架', () => {
+describe('4.5: 写 impdp 命令骨架', () => {
   let parsed;
 
   before(async () => {

@@ -21,7 +21,7 @@ const {
  * 第 3 点是这一关的重点：证明"角色授到过程上"是真的能用，
  * 不是只在字典里躺着一行。
  */
-describe('4.19 用户 oper 借书', () => {
+describe('4.19: 用户 oper 借书', () => {
   before(async () => {
     await resetSecurityObjects({
       users: ['用户_OPER'],

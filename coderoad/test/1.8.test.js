@@ -1,7 +1,7 @@
 const assert = require('node:assert');
 const { loadUpTo, replay, exec, scalar, closeAll } = require('./utils');
 
-describe('1.8 插入一本测试图书（验证默认值）', () => {
+describe('1.8: 插入一本测试图书（验证默认值）', () => {
   before(async () => {
     // 前置表结构用学生上一关自己写的 sql/1.7.sql 建：
     // loadUpTo('1.7') 会重放 1.3~1.6 的标准答案，最后执行「学生文件」sql/1.7.sql，

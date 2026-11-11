@@ -8,7 +8,7 @@ const { loadUpTo, scalar, closeAll, WORKSPACE } = require('./utils');
  * 这一关要先证明"你能连上"，再证明"你写对了查询"。
  * 所以：① 连接探活（查 DB 服务名）  ② 重放学生文件，断言它真的查出了用户名
  */
-describe('1.1 环境自检', () => {
+describe('1.1: 环境自检', () => {
   after(async () => {
     await closeAll();
   });

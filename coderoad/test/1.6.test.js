@@ -1,7 +1,7 @@
 const assert = require('node:assert');
 const { loadUpTo, exec, assertTable, assertColumn, assertConstraint, expectError, closeAll } = require('./utils');
 
-describe('1.6 建「书目」表（含外键）', () => {
+describe('1.6: 建「书目」表（含外键）', () => {
   before(async () => {
     await loadUpTo('1.6');
   });

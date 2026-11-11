@@ -13,7 +13,7 @@ const {
  * 3.3 给「借书」补上 UPDATE 和异常处理
  * 判题：调用一次 → 借阅多一条 + 图书变成「是」→ 再检查源码里确实有 EXCEPTION 段。
  */
-describe('3.3 借书改图书状态并加异常处理', () => {
+describe('3.3: 借书改图书状态并加异常处理', () => {
   before(async () => {
     await loadUpTo('3.3');
     // 判题辅助：调一次过程，验证 INSERT + UPDATE 的副作用

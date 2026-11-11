@@ -1,7 +1,7 @@
 const assert = require('node:assert');
 const { loadUpTo, assertConstraint, expectError, exec, scalar, closeAll } = require('./utils');
 
-describe('1.23 给「读者」的身份证加 CHECK 约束（18 位）', () => {
+describe('1.23: 给「读者」的身份证加 CHECK 约束（18 位）', () => {
   before(async () => {
     await loadUpTo('1.23');
   });

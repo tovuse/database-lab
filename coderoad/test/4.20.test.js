@@ -11,7 +11,7 @@ const {
  * 4.20 建视图 VIEW_READER
  * 判题：视图存在、三列齐、行数=4（基线 4 本书目）、能查出分类名
  */
-describe('4.20 建视图 VIEW_READER', () => {
+describe('4.20: 建视图 VIEW_READER', () => {
   before(async () => {
     await loadCourseBaseline();
     await replayAsCourse('sql/4.20.sql');

@@ -13,7 +13,7 @@ const {
  * 不要求结果非空——COURSE 自己可能没有被别人授过对象权限，
  * 空结果在这道题上是正常的。
  */
-describe('4.15 查对象权限', () => {
+describe('4.15: 查对象权限', () => {
   let results;
   let expected;
   let hit;

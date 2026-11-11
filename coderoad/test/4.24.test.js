@@ -17,7 +17,7 @@ const {
  *   2. 跑学生的 UNLOCK 语句
  *   3. 断言 account_status = OPEN，且真的能登录
  */
-describe('4.24 手工解锁用户', () => {
+describe('4.24: 手工解锁用户', () => {
   before(async () => {
     await resetSecurityObjects({ users: ['用户_USER1'], roles: [], profiles: [] });
     await loadCourseBaseline();

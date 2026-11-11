@@ -11,7 +11,7 @@ const {
  * 4.16 建角色「图书管理员」并授 CONNECT
  * 判题：角色存在、拿到了 CONNECT。
  */
-describe('4.16 建图书管理员角色', () => {
+describe('4.16: 建图书管理员角色', () => {
   before(async () => {
     await resetSecurityObjects({ users: [], roles: ['图书管理员'], profiles: [] });
     await loadCourseBaseline();

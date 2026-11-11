@@ -4,7 +4,7 @@ const {
   assertConstraint, expectError, closeAll,
 } = require('./utils');
 
-describe('1.10 建「借阅」表（三个外键）', () => {
+describe('1.10: 建「借阅」表（三个外键）', () => {
   before(async () => {
     await loadUpTo('1.10');
 

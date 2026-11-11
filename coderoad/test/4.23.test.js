@@ -17,7 +17,7 @@ const {
  *   这一关的教学目标是"会用 PROFILE 配置安全策略"，断言参数值即可。
  *   讲义里如实说明了这个取舍。
  */
-describe('4.23 建 PROFILE 限时锁定', () => {
+describe('4.23: 建 PROFILE 限时锁定', () => {
   before(async () => {
     await resetSecurityObjects({ users: [], roles: [], profiles: ['限时锁定'] });
     await loadCourseBaseline();

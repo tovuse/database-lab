@@ -6,7 +6,7 @@ const {
   closeAll,
 } = require('./utils');
 
-describe('2.2 高等教育出版社的书目，按单价降序', () => {
+describe('2.2: 高等教育出版社的书目，按单价降序', () => {
   before(async () => {
     await loadUpTo('2.2');
   });

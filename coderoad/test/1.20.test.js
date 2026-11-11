@@ -1,7 +1,7 @@
 const assert = require('node:assert');
 const { loadUpTo, query, scalar, closeAll } = require('./utils');
 
-describe('1.20 改：把分类 400 的类名改成「艺术设计」', () => {
+describe('1.20: 改：把分类 400 的类名改成「艺术设计」', () => {
   before(async () => {
     await loadUpTo('1.20');
   });

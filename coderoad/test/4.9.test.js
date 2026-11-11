@@ -10,7 +10,7 @@ const {
  * 4.9 让「预约」表支持闪回
  * 判题：重放基线 → 跑学生 4.9 → 断言 user_tables.row_movement = 'ENABLED'
  */
-describe('4.9 开启行移动', () => {
+describe('4.9: 开启行移动', () => {
   before(async () => {
     await loadCourseBaseline();
     await replayAsCourse('sql/4.9.sql');

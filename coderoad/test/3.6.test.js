@@ -12,7 +12,7 @@ const {
  * 3.6 给「预约」补上可借判断
  * 判题：这个 ISBN 还有可借的书，调用必须被拒绝（RAISE_APPLICATION_ERROR）。
  */
-describe('3.6 预约的可借判断', () => {
+describe('3.6: 预约的可借判断', () => {
   before(async () => {
     await loadUpTo('3.6');
   });

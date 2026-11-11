@@ -16,7 +16,7 @@ const {
  * 为什么 COMMIT 要单独检查：判题器重放 SQL 时是自动提交的，
  * 光看库里有没有数据，分不出学生写没写 COMMIT。
  */
-describe('4.10 删掉预约数据', () => {
+describe('4.10: 删掉预约数据', () => {
   before(async () => {
     await loadCourseBaseline();
     await replayAsCourse('sql/4.10.sql');

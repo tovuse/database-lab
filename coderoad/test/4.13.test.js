@@ -14,7 +14,7 @@ const {
  *   2. 行数、角色名与该视图一致
  * 不硬比「至少有某个角色」：不同环境给 COURSE 授的角色不一样，硬写会误判。
  */
-describe('4.13 查角色权限', () => {
+describe('4.13: 查角色权限', () => {
   let results;
   let expected;
   let hit;

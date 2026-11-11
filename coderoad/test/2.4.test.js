@@ -5,7 +5,7 @@ const {
   closeAll,
 } = require('./utils');
 
-describe('2.4 统计从未借过书的读者人数', () => {
+describe('2.4: 统计从未借过书的读者人数', () => {
   before(async () => {
     await loadUpTo('2.4');
   });

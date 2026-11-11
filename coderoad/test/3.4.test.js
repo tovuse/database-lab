@@ -12,7 +12,7 @@ const {
  * 注意 3.4 自己不在链里（STEPS_WITHOUT_REPLAY）——它是调用过程、会改数据，
  * 放进链会污染后续步骤的基线。loadUpTo('3.4') 只会重放到 3.3。
  */
-describe('3.4 调用借书存储过程', () => {
+describe('3.4: 调用借书存储过程', () => {
   before(async () => {
     await loadUpTo('3.4');
   });

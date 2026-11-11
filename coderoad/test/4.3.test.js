@@ -20,7 +20,7 @@ const {
  *   3. 用这些参数真的跑一次 expdp
  *   4. 断言：转储文件有内容、日志里写了 successfully completed、导的确实是 预约
  */
-describe('4.3 用 expdp 导出预约表', () => {
+describe('4.3: 用 expdp 导出预约表', () => {
   let parsed;
 
   before(async () => {

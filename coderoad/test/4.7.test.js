@@ -8,7 +8,7 @@ const {
  * 4.7 写按 schema 导出的 expdp 骨架
  * 只做参数检查：还缺 DUMPFILE / LOGFILE，不真的跑。
  */
-describe('4.7 写全库导出骨架', () => {
+describe('4.7: 写全库导出骨架', () => {
   let parsed;
 
   before(async () => {

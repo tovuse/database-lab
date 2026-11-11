@@ -8,7 +8,7 @@ const {
  * 4.2 给 expdp 补上 DUMPFILE / LOGFILE
  * 只做参数检查：还缺 TABLES，跑起来会被 Data Pump 拒绝。
  */
-describe('4.2 补导出文件名', () => {
+describe('4.2: 补导出文件名', () => {
   let parsed;
 
   before(async () => {

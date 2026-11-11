@@ -22,7 +22,7 @@ const {
  * 起点由判题器自己制造（DELETE + COMMIT），不依赖学生 4.10 写对：
  * 4.10 有自己的测试，这一步只考「会不会闪回」。
  */
-describe('4.11 闪回恢复预约表', () => {
+describe('4.11: 闪回恢复预约表', () => {
   let beforeCount;
   let afterDelete;
 

@@ -17,7 +17,7 @@ const {
  *   2. 跑学生的 REVOKE + DROP USER
  *   3. 断言：用户不存在了，该用户的授权记录也级联消失
  */
-describe('4.25 撤销权限并删除用户', () => {
+describe('4.25: 撤销权限并删除用户', () => {
   before(async () => {
     await resetSecurityObjects({
       users: ['用户_USER1'],

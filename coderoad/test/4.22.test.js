@@ -17,7 +17,7 @@ const {
  *   反面：不能 SELECT 基表 书目（ORA-00942 或 ORA-01031）
  *        —— 这是"视图做权限隔离"的教学重点
  */
-describe('4.22 只授视图查询权限', () => {
+describe('4.22: 只授视图查询权限', () => {
   before(async () => {
     await resetSecurityObjects({
       users: ['用户_USER1'],

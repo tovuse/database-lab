@@ -1,7 +1,7 @@
 const assert = require('node:assert');
 const { loadUpTo, expectError, exec, scalar, closeAll } = require('./utils');
 
-describe('1.25 把「借阅」的借书日期改成 NOT NULL', () => {
+describe('1.25: 把「借阅」的借书日期改成 NOT NULL', () => {
   before(async () => {
     await loadUpTo('1.25');
   });
