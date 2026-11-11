@@ -4,18 +4,50 @@
 
 ---
 
-## 一、当前状态一览
+## ✅ 更新（2026-11-11 晚）：两个诉求都已真机验证通过
+
+改名阻塞已解除，新 Codespace 真机构建 + 判题全部跑通。**实测证据如下。**
+
+**验证环境**：新建 Codespace `jubilant-space-rotary-phone-wr56p765w6953gw9x`
+（分支 `feat/image-prep-and-finer-steps`，2-core / 8GB，US West）
+
+| 验证项 | 结果 | 证据 |
+|---|---|---|
+| `docker build` 真的跑了（不是复用旧容器） | ✅ | 新 Codespace 从零构建，文件树完整加载 |
+| BuildKit `followPaths` header 错误 | ✅ 已消失 | 改名后构建一次通过 |
+| Node 预装 | ✅ | `node -v` → `v20.20.2`，`npm -v` → `10.8.2` |
+| git 预装 | ✅ | `git --version` → `2.43.7` |
+| 判题依赖预装 | ✅ | `coderoad/node_modules` 已有 ansi-colors / ansi-regex / ansi-styles |
+| initdb 脚本进镜像 | ✅ | `/container-entrypoint-initdb.d/10_db_setup.sh` 存在 |
+| 基线数据进镜像 | ✅ | `/opt/course/baseline/00_baseline.sql` 存在 |
+| Oracle 起来了 | ✅ | 判题的 `[环境] 应能连上课程库 FREEPDB1` 通过 |
+| COURSE 用户可连库 | ✅ | `sqlplus COURSE/course@//localhost:1521/FREEPDB1` → `USER=COURSE` |
+| **`CODEROAD_TUTORIAL_URL` 自动开课** | ✅ **首次验证成功** | 点「信任」后 CodeRoad 面板**直接显示第 1 关**，没有「Start New Tutorial」面板 |
+| 78 步粒度生效 | ✅ | 面板显示「本关一共 **25 小步**」 |
+| 自动打开作答文件 | ✅ | 自动打开 `sql/1.1.sql`（纯 ASCII 文件名） |
+| **1.1 判题通关** | ✅ | 写入 `SELECT USER FROM dual;` 后 `3 passing / 0 failing` |
+| 学生需要的手动操作 | 只剩 **1 下** | 点「信任文件夹并继续」（VS Code 安全机制，工作区配置关不掉） |
+
+**用户原始诉求对照**：
+- 诉求 1（关卡太大）→ 78 步，每步一个动作，实测面板确认 25 小步 ✅
+- 诉求 2（启动要用户配机器）→ 学生零配置：Node/git/依赖/Oracle/基线全部预置，只剩一次信任点击 ✅
+
+**剩余待办**：78 步的完整判题回归（本次只跑了 1.1），以及合并回 `main`。
+
+---
+
+## 一、当前状态一览（历史记录，改名前的状态）
 
 | 项 | 值 |
 |---|---|
 | 仓库 | `D:/code/database-lab`（远端 `https://github.com/tovuse/database-lab.git`） |
 | 分支 | `feat/image-prep-and-finer-steps` |
-| HEAD | `4415f4d fix(image): .dockerignore 改为纯 ASCII，修复 BuildKit 构建失败` |
-| 工作区 | **干净**（0 项改动） |
+| HEAD | `72bc5e6 refactor(paths): 145 个中文文件名改为纯编号 ASCII` |
+| 工作区 | **干净** |
 | 课程步骤 | **78 步**（L1=25 / L2=15 / L3=13 / L4=25） |
 | `main` 分支 | **仍是旧的 50 步版本，尚未合并** |
 
-**一句话现状**：内容重构（50→78 步）已完成并构建通过；镜像方案改到一半，卡在最后一个阻塞点（中文文件名）。
+**一句话现状**：内容重构（50→78 步）+ 镜像预置 + 自动开课，三者均已在真机验证通过；只差 78 步全量回归和合并回 `main`。
 
 ---
 
@@ -96,7 +128,7 @@ BuildKit 把 `.dockerignore` 内容作为 `excludePatterns` header 传给构建�
 
 修复：全部注释改英文，中文文件名改用通配 `!answers/00_*.sql`。已验证 `grep -c '[^ -~]' .dockerignore` = 0。
 
-### 修复 B 之后暴露的新错误（当前阻塞点）❌
+### 修复 B 之后暴露的新错误（已解决）✅
 
 修好 B 后，构建往前走了一步（`transferring dockerfile: 10.55kB` 成功），但立刻报新错：
 
@@ -116,13 +148,13 @@ desc = header key "followPaths" contains value with non-printable ASCII characte
 
 即 `sql/1.11_预约表.sql`、`answers/00_基线.sql` 这类。**只要有一个，构建就失败。**
 
-**这不是改配置能绕过的，必须改文件名。**
+**已解决**（commit `72bc5e6`）：145 个文件名全部改为纯编号 ASCII，210 处引用同步改写。详见第四部分。
 
 ---
 
-## 四、⏭️ 下一步要做的事（从这里开始）
+## 四、✅ 已完成：145 个中文文件名改为纯编号 ASCII（commit `72bc5e6`）
 
-### 用户已拍板的方案
+### 用户已拍板的方案（已执行）
 
 **Q: 145 个中文文件名怎么处理？**
 **A: 改成纯编号 ASCII → `sql/1.1.sql`、`answers/1.1.sql`、`coderoad/test/1.1.test.js`。中文标题只保留在 `TUTORIAL.md` 和文件内容里。**
@@ -130,7 +162,7 @@ desc = header key "followPaths" contains value with non-printable ASCII characte
 **Q: `answers/3.7` 和 `answers/3.8` 各有两份文件会重名怎么办？**
 **A: 真答案用 `answers/3.7.sql`，判题辅助数据用 `answers/3.7_seed.sql`。**
 
-冲突详情（已核实内容）：
+冲突详情（已核实内容并按此映射）：
 ```
 answers/3.7_把书全借出.sql      → 判题辅助（UPDATE 图书 SET 是否借出）  → 3.7_seed.sql
 answers/3.7_预约插入.sql        → 真答案（CREATE PROCEDURE 图书预约）   → 3.7.sql
@@ -138,71 +170,38 @@ answers/3.8_还书改图书状态.sql    → 真答案（CREATE PROCEDURE 还书
 answers/3.8_造一条未还记录.sql    → 判题辅助（UPDATE + INSERT 借阅）     → 3.8_seed.sql
 ```
 
-### 改名必须同步修改的引用点（已统计）
+### 实际改了什么
 
-| 位置 | 引用数量 | 说明 |
-|---|---|---|
-| `coderoad.yaml` 的 `setup.files` | **78 处** | 每步的 `- sql/N.M_xxx.sql` |
-| `coderoad/test/*.test.js` 的 `replay(...)` | **111 处** | `replay('sql/...')` / `replay('answers/...')` |
-| 测试里 `'answers/...'` 引用 | 29 个不同路径 | 含判题辅助数据 |
-| 测试里 `'sql/...'` 引用 | 78 个不同路径 | |
-| `TUTORIAL.md` 正文提到的路径 | 若干 | 如 `sql/1.1_环境自检.sql` |
-| `Dockerfile` 第 92 行 | 1 处 | `COPY answers/00_基线.sql /opt/course/baseline/00_baseline.sql` |
-| `scripts/loadBaseline.sh` 第 36 行 | 1 处 | `@answers/00_基线.sql` |
-| `scripts/postCreate.sh` | 0 处 | 只调 `loadBaseline.sh`，无需改 |
-| `.dockerignore` | 1 处 | `!answers/00_*.sql` 通配，改名后仍可用，但建议改成 `!answers/00.sql` 更明确 |
-| `coderoad/test/utils.js` 第 799 行 | **1 处（易漏！）** | `replayAsCourse('answers/00_基线.sql')`，在 `loadCourseBaseline()` 里 |
+| 项 | 数量 |
+|---|---|
+| 改名文件 | **145**（`sql/` 78 + `answers/` 65 + 根 1 + `scripts/` 1） |
+| 引用改写 | **210 处 / 107 个唯一路径 / 88 个文件** |
+| `coderoad.yaml` `setup.files` | 78 处 |
+| `coderoad/test/*.test.js` `replay(...)` | 全部 |
+| `coderoad/test/utils.js` | 1 处（`loadCourseBaseline()` 里那个易漏的 `answers/00.sql`） |
+| `TUTORIAL.md` / `README.md` / `scripts/*.sh` | 若干 |
+| `Dockerfile` 的 COPY | → `COPY answers/00.sql /opt/course/baseline/00_baseline.sql` |
+| `.dockerignore` | `!answers/00_*.sql` → `!answers/00.sql`（改名后原通配已失配） |
 
-**完整受影响文件清单（共 84 个，已用 grep 实测）：**
+### 改名后的验证（全部通过）
 
-```
-Dockerfile                                  ← COPY answers/00_基线.sql
-README.md
-TUTORIAL.md
-coderoad.yaml                               ← 78 处 setup.files
-coderoad/test/utils.js                      ← replayAsCourse('answers/00_基线.sql')
-coderoad/test/1.1.test.js  … 4.25.test.js   ← 全部 78 个测试文件
-scripts/00_装载基线数据.md                    ← 文件名本身就是中文
-scripts/apply.sh
-scripts/loadBaseline.sh                     ← @answers/00_基线.sql
-```
+1. ✅ `node scripts/build.js` → 4 关卡 / 78 步
+2. ✅ 78 个 `setup.filter` 全部匹配对应测试的 `describe` 标题（0 不匹配）
+3. ✅ 78 步每步 ≥3 条提示
+4. ✅ 210 个 `sql/` `answers/` 路径引用 **0 缺失**（78 个 sql + 29 个 answers，与预期吻合）
+5. ✅ `git ls-files` 非 ASCII 文件名 **0**
+6. ✅ 模拟 dockerignore 后构建上下文 95 个文件，非 ASCII 文件名 **0**
+7. ✅ 78 个测试文件 `node --check` 全部通过
+8. ✅ 新 Codespace 真机构建通过 + 1.1 判题 3 passing / 0 failing
 
-**注意 `scripts/00_装载基线数据.md` 这个文件名也是中文**——虽然 `.dockerignore` 排除了 `scripts`，不影响 docker build，但为了彻底干净建议一并改名。
+**改名脚本留档**：`D:/tmp/dblab-rename/rename.js`（不在仓库里；逻辑简单，可参考其注释）
 
-**改名后必须重新跑 `node scripts/build.js`**，并确认 `coderoad.yaml` 的 `filter`（如 `'^4\.8 '`）仍然匹配测试的 describe 名——filter 用的是**步骤编号**不是文件名，改名不影响，但建议回归验证。
+### 剩下的验证（未做）
 
-### 改名脚本建议思路
-
-```bash
-# 1. git mv 逐对改名（保留历史）
-#    规则：取文件名开头的编号 + 原扩展名
-#    sql/1.11_预约表.sql         → sql/1.11.sql
-#    answers/1.11_插入数据.sql    → answers/1.11.sql
-#    coderoad/test/1.1.test.js  → 已经是 ASCII，不用改
-#    CodeRoad课程...docx        → 这个不在构建上下文里（.dockerignore 已排除），
-#                                  但为了彻底干净建议改名或删除
-
-# 2. 用 sed/node 批量替换引用（注意先 git mv 再改内容，或反之，保持可回滚）
-```
-
-**⚠️ 三个特别注意**：
-
-1. **`coderoad/test/*.test.js` 的文件名已经是 ASCII**（`1.1.test.js`），不用改。只有 `sql/` 和 `answers/` 里的文件要改。
-2. **判题辅助数据的 `_seed` 后缀**要同步改测试里的引用。
-3. **改名后 `answers/00_基线.sql` → `answers/00.sql`**，`Dockerfile` 的 `COPY`、`loadBaseline.sh`、测试里的 `replay('answers/00_基线.sql')` 全都要改。
-
-### 改完后的验证清单
-
-1. `node scripts/build.js` → 78 步
-2. `git -c core.quotePath=false ls-files | node -e '...'` 检查非 ASCII 文件名为 **0**
-3. 新建 Codespace（**必须新建，不能 Rebuild**），确认：
-   - 日志里是 `docker buildx build` 而非 `docker start`
-   - 出现 `#1 transferring dockerfile: ... done`
-   - 出现 `deps ok` 和 `build self-check ok`（Dockerfile 里的自检）
-   - 容器里 `node -v` = v20.20.2、`ps -ef | grep -c oracle` > 0、`/container-entrypoint-initdb.d/10_db_setup.sh` 存在
-   - `docker logs` 里有 `CONTAINER: running /container-entrypoint-initdb.d/10_db_setup.sh`
-   - **CodeRoad 面板直接显示第 1 关**（仍需点一次信任）—— 这是 `CODEROAD_TUTORIAL_URL` 的首次真实验证
-4. 78 步判题回归（本机无 Oracle，需在 Codespace 里跑）
+1. **78 步全量判题回归** —— 本次只实测了 1.1（3 passing / 0 failing）。其余 77 步未跑。
+   建议做法：在 Codespace 里把 `answers/*.sql` 逐个喂给对应关卡，或用脚本批量跑
+   `cd coderoad && ./node_modules/.bin/mocha --grep '^N\.M '`。
+2. **合并回 `main`** —— `main` 仍是旧的 50 步版本。
 
 ---
 
@@ -220,19 +219,23 @@ $ docker start fdd816afe1c76cc...     ← 不是 build
 
 **对策：改 Dockerfile 或 `.dockerignore` 后，必须删除 Codespace 重新创建。** 这一点应该写进 README 给后续开发看。
 
+**已验证有效的做法**：从 `https://github.com/codespaces` 点「New codespace」新建，
+分支用 URL 参数 `&ref=feat%2Fimage-prep-and-finer-steps` 指定
+（点下拉菜单里的分支项经常只关掉下拉框、不生效）。新建的 Codespace 是真正从零构建的。
+
 ### 2. 不要基于被截断的日志下结论
 
 我第一次看到 `--build-arg _DEV_CONTAINERS_IMAGE_USER=node` 就断定是 devcontainer CLI 的 stage 冲突。实际上那段日志是拼接过的，里面 `dev_containers_auto_ded_stage_label` 这个拼写在 CLI 源码里根本搜不到。
 
 subagent 用同版本 CLI（0.83.3）本地实测才推翻：**CLI 自己会生成那个 stage**，`_DEV_CONTAINERS_IMAGE_USER` 是按 Dockerfile 最后一条 `USER` 算的（我们是 `oracle`，不是 `node`）。Dockerfile 结构本来就是对的。
 
-### 3. `package-lock.json` 指向国内镜像源（已修，但不是这次的根因）
+### 3. `package-lock.json` 指向国内镜像源（已修 + 已验证）✅
 
 `coderoad/package-lock.json` 里 74 条 `resolved` 全部指向 `registry.npmmirror.com`。npm 11 实测：`npm ci` 直接信任锁文件里的 `resolved` URL，`--registry` 管不到它。Codespaces 构建机在境外，不可达时失败，报错是 `Exit handler never called!`（看起来像 npm 自己崩了）。
 
-已在 Dockerfile 里修：构建时先 `sed` 主机名为 `registry.npmjs.org` 再 `npm ci`（`integrity` 是内容哈希，改写主机安全）。
+Dockerfile 里的修法：构建时先 `sed` 主机名为 `registry.npmjs.org` 再 `npm ci`（`integrity` 是内容哈希，改写主机安全）。
 
-**但注意**：这个修复**也还没被真实验证过**——因为构建先卡在中文文件名上了。它排在当前阻塞点之后。
+**已验证**：新 Codespace 构建时这一层顺利通过，`coderoad/node_modules` 里 mocha 等依赖齐全。
 
 ### 4. 浏览器自动化在 VS Code 网页版里很容易点错焦点
 
@@ -250,35 +253,33 @@ subagent 用同版本 CLI（0.83.3）本地实测才推翻：**CLI 自己会生�
 
 | 文件 | 作用 | 状态 |
 |---|---|---|
-| `Dockerfile` | 课程镜像：预装 Node 20 + git、判题依赖、建库初始化脚本、构建期自检 | 已写，未验证 |
-| `.devcontainer/devcontainer.json` | 用 `build` 指向 Dockerfile；`remoteEnv` 设 `CODEROAD_TUTORIAL_URL` | 已改，未验证 |
-| `.devcontainer/initdb/10_db_setup.sh` | 建库时执行：TESTER 用户、COURSE 授权、DUMPDIR、基线数据 | 已写，未验证 |
-| `.dockerignore` | **必须纯 ASCII**（已修，临界约束） | ✅ 已验证 |
-| `scripts/postCreate.sh` | 从「5 步全量初始化」精简为「5 步校验 + 兜底」 | 已改，未验证 |
-| `coderoad.yaml` | 78 步的 setup.files + filter；setup/continue/reset 改成 `{ [ -d node_modules/mocha ] || npm install; }` | ✅ 构建通过 |
+| `Dockerfile` | 课程镜像：预装 Node 20 + git、判题依赖、建库初始化脚本、构建期自检 | ✅ **真机构建通过** |
+| `.devcontainer/devcontainer.json` | 用 `build` 指向 Dockerfile；`remoteEnv` 设 `CODEROAD_TUTORIAL_URL` | ✅ **自动开课已验证** |
+| `.devcontainer/initdb/10_db_setup.sh` | 建库时执行：TESTER 用户、COURSE 授权、DUMPDIR、基线数据 | ✅ 脚本进镜像，TESTER 可连 |
+| `.dockerignore` | **必须纯 ASCII**（临界约束） | ✅ 已验证 |
+| `scripts/postCreate.sh` | 从「5 步全量初始化」精简为「5 步校验 + 兜底」 | ✅ 依赖已拷好 |
+| `coderoad.yaml` | 78 步的 setup.files + filter | ✅ 78 步 + filter 全匹配 |
 | `TUTORIAL.md` | 78 步文案，每步 3 档 HINTS | ✅ 构建通过 |
-| `TUTORIAL.md` 对应产物 `tutorial.json` | 分支上的版本已确认 78 步、每步有 filter | ✅ 已验证 |
+| `tutorial.json` | 78 步、每步有 filter、无中文路径 | ✅ 已验证 |
 
 ---
 
 ## 七、建议的下一步顺序
 
-1. **先改名**（本节第四部分的方案），这是当前唯一阻塞点
-2. `node scripts/build.js` 验证 78 步
-3. 检查非 ASCII 文件名为 0
-4. 提交推送
-5. **删掉所有旧 Codespace，新建一个**
-6. 按第四部分的验证清单逐项确认
-7. 全绿后再考虑合并回 `main`
-
-如果改名后还报 `followPaths` 或其它 header 错误，说明还有非 ASCII 路径残留（比如 `.dockerignore` 里的 `!answers/00_基线.sql` 忘了改，或者 `scripts/` 里那个中文文件名）。
+1. **78 步全量判题回归**（唯一实质未完成项）
+2. 回归全绿后合并回 `main`（`main` 还是 50 步旧版）
+3. 更新 `README.md` 里已过时的说明（比如 `sql/1.3_图书分类.sql` 这类旧路径写法）
+4. 可选：删掉旧 Codespace（`friendly space capybara` / `animated carnival` / `curly doodle` 等），
+   避免后续有人误在里面验证
 
 ---
 
 ## 八、一句话给下一个会话
 
-> 内容已经拆好（78 步，构建通过，在 `feat/image-prep-and-finer-steps` 分支上）。
-> 镜像方案卡在最后一步：**仓库有 145 个中文文件名，BuildKit 的 `followPaths` header 不接受非 ASCII**。
-> 用户已定方案：全部改成纯编号 ASCII（`sql/1.1.sql` 这种），冲突的判题辅助数据加 `_seed` 后缀。
-> 改完记得同步更新 `coderoad.yaml`（78 处）、`coderoad/test/*.test.js`（111 处 replay）、`TUTORIAL.md`、`Dockerfile` 的 COPY、`loadBaseline.sh`。
-> 验证时必须**删掉旧 Codespace 新建**，因为 Rebuild 会复用旧容器、镜像根本不重建。
+> 两个诉求都做完了，**真机验证通过**：新 Codespace 从零 `docker build` 成功，
+> CodeRoad 点一次「信任」后自动进第 1 关（`CODEROAD_TUTORIAL_URL` 生效），
+> 面板显示 25 小步，1.1 判题 3 passing / 0 failing。
+> 145 个中文文件名已全改为纯编号 ASCII（commit `72bc5e6`），BuildKit 的
+> `followPaths` / `excludePatterns` 两个 header 错误都消失了。
+> **唯一剩的事**：78 步全量判题回归，然后把 `feat/image-prep-and-finer-steps` 合并回 `main`。
+> 验证时务必**新建** Codespace，Rebuild 会复用旧容器、镜像根本不重建。
