@@ -43,127 +43,127 @@ levels:
         setup:
           files:
             - sql/1.1.sql
-          filter: '^1\.1 '
+          filter: '^1\.1\b'
       - id: '1.2'
         setup:
           files:
             - sql/1.2.sql
-          filter: '^1\.2 '
+          filter: '^1\.2\b'
       - id: '1.3'
         setup:
           files:
             - sql/1.3.sql
-          filter: '^1\.3 '
+          filter: '^1\.3\b'
       - id: '1.4'
         setup:
           files:
             - sql/1.4.sql
-          filter: '^1\.4 '
+          filter: '^1\.4\b'
       - id: '1.5'
         setup:
           files:
             - sql/1.5.sql
-          filter: '^1\.5 '
+          filter: '^1\.5\b'
       - id: '1.6'
         setup:
           files:
             - sql/1.6.sql
-          filter: '^1\.6 '
+          filter: '^1\.6\b'
       - id: '1.7'
         setup:
           files:
             - sql/1.7.sql
-          filter: '^1\.7 '
+          filter: '^1\.7\b'
       - id: '1.8'
         setup:
           files:
             - sql/1.8.sql
-          filter: '^1\.8 '
+          filter: '^1\.8\b'
       - id: '1.9'
         setup:
           files:
             - sql/1.9.sql
-          filter: '^1\.9 '
+          filter: '^1\.9\b'
       - id: '1.10'
         setup:
           files:
             - sql/1.10.sql
-          filter: '^1\.10 '
+          filter: '^1\.10\b'
       - id: '1.11'
         setup:
           files:
             - sql/1.11.sql
-          filter: '^1\.11 '
+          filter: '^1\.11\b'
       - id: '1.12'
         setup:
           files:
             - sql/1.12.sql
-          filter: '^1\.12 '
+          filter: '^1\.12\b'
       - id: '1.13'
         setup:
           files:
             - sql/1.13.sql
-          filter: '^1\.13 '
+          filter: '^1\.13\b'
       - id: '1.14'
         setup:
           files:
             - sql/1.14.sql
-          filter: '^1\.14 '
+          filter: '^1\.14\b'
       - id: '1.15'
         setup:
           files:
             - sql/1.15.sql
-          filter: '^1\.15 '
+          filter: '^1\.15\b'
       - id: '1.16'
         setup:
           files:
             - sql/1.16.sql
-          filter: '^1\.16 '
+          filter: '^1\.16\b'
       - id: '1.17'
         setup:
           files:
             - sql/1.17.sql
-          filter: '^1\.17 '
+          filter: '^1\.17\b'
       - id: '1.18'
         setup:
           files:
             - sql/1.18.sql
-          filter: '^1\.18 '
+          filter: '^1\.18\b'
       - id: '1.19'
         setup:
           files:
             - sql/1.19.sql
-          filter: '^1\.19 '
+          filter: '^1\.19\b'
       - id: '1.20'
         setup:
           files:
             - sql/1.20.sql
-          filter: '^1\.20 '
+          filter: '^1\.20\b'
       - id: '1.21'
         setup:
           files:
             - sql/1.21.sql
-          filter: '^1\.21 '
+          filter: '^1\.21\b'
       - id: '1.22'
         setup:
           files:
             - sql/1.22.sql
-          filter: '^1\.22 '
+          filter: '^1\.22\b'
       - id: '1.23'
         setup:
           files:
             - sql/1.23.sql
-          filter: '^1\.23 '
+          filter: '^1\.23\b'
       - id: '1.24'
         setup:
           files:
             - sql/1.24.sql
-          filter: '^1\.24 '
+          filter: '^1\.24\b'
       - id: '1.25'
         setup:
           files:
             - sql/1.25.sql
-          filter: '^1\.25 '
+          filter: '^1\.25\b'
   - id: '2'
     # Level 2 的查询题要用全部 7 张表 + 27 行原始数据。
     # 这些数据是学生自己在 Level 1 一步步建/插出来的（1.3~1.18）。
@@ -176,77 +176,77 @@ levels:
         setup:
           files:
             - sql/2.1.sql
-          filter: '^2\.1 '
+          filter: '^2\.1\b'
       - id: '2.2'
         setup:
           files:
             - sql/2.2.sql
-          filter: '^2\.2 '
+          filter: '^2\.2\b'
       - id: '2.3'
         setup:
           files:
             - sql/2.3.sql
-          filter: '^2\.3 '
+          filter: '^2\.3\b'
       - id: '2.4'
         setup:
           files:
             - sql/2.4.sql
-          filter: '^2\.4 '
+          filter: '^2\.4\b'
       - id: '2.5'
         setup:
           files:
             - sql/2.5.sql
-          filter: '^2\.5 '
+          filter: '^2\.5\b'
       - id: '2.6'
         setup:
           files:
             - sql/2.6.sql
-          filter: '^2\.6 '
+          filter: '^2\.6\b'
       - id: '2.7'
         setup:
           files:
             - sql/2.7.sql
-          filter: '^2\.7 '
+          filter: '^2\.7\b'
       - id: '2.8'
         setup:
           files:
             - sql/2.8.sql
-          filter: '^2\.8 '
+          filter: '^2\.8\b'
       - id: '2.9'
         setup:
           files:
             - sql/2.9.sql
-          filter: '^2\.9 '
+          filter: '^2\.9\b'
       - id: '2.10'
         setup:
           files:
             - sql/2.10.sql
-          filter: '^2\.10 '
+          filter: '^2\.10\b'
       - id: '2.11'
         setup:
           files:
             - sql/2.11.sql
-          filter: '^2\.11 '
+          filter: '^2\.11\b'
       - id: '2.12'
         setup:
           files:
             - sql/2.12.sql
-          filter: '^2\.12 '
+          filter: '^2\.12\b'
       - id: '2.13'
         setup:
           files:
             - sql/2.13.sql
-          filter: '^2\.13 '
+          filter: '^2\.13\b'
       - id: '2.14'
         setup:
           files:
             - sql/2.14.sql
-          filter: '^2\.14 '
+          filter: '^2\.14\b'
       - id: '2.15'
         setup:
           files:
             - sql/2.15.sql
-          filter: '^2\.15 '
+          filter: '^2\.15\b'
   - id: '3'
     # Level 3 用 PL/SQL 写存储过程和触发器，判题会重放基线 + 建过程 + 调用 + 断言数据变化。
     # 一个过程被拆成「骨架 → 补一段 → 再补一段」，每关只加一个动作。
@@ -257,67 +257,67 @@ levels:
         setup:
           files:
             - sql/3.1.sql
-          filter: '^3\.1 '
+          filter: '^3\.1\b'
       - id: '3.2'
         setup:
           files:
             - sql/3.2.sql
-          filter: '^3\.2 '
+          filter: '^3\.2\b'
       - id: '3.3'
         setup:
           files:
             - sql/3.3.sql
-          filter: '^3\.3 '
+          filter: '^3\.3\b'
       - id: '3.4'
         setup:
           files:
             - sql/3.4.sql
-          filter: '^3\.4 '
+          filter: '^3\.4\b'
       - id: '3.5'
         setup:
           files:
             - sql/3.5.sql
-          filter: '^3\.5 '
+          filter: '^3\.5\b'
       - id: '3.6'
         setup:
           files:
             - sql/3.6.sql
-          filter: '^3\.6 '
+          filter: '^3\.6\b'
       - id: '3.7'
         setup:
           files:
             - sql/3.7.sql
-          filter: '^3\.7 '
+          filter: '^3\.7\b'
       - id: '3.8'
         setup:
           files:
             - sql/3.8.sql
-          filter: '^3\.8 '
+          filter: '^3\.8\b'
       - id: '3.9'
         setup:
           files:
             - sql/3.9.sql
-          filter: '^3\.9 '
+          filter: '^3\.9\b'
       - id: '3.10'
         setup:
           files:
             - sql/3.10.sql
-          filter: '^3\.10 '
+          filter: '^3\.10\b'
       - id: '3.11'
         setup:
           files:
             - sql/3.11.sql
-          filter: '^3\.11 '
+          filter: '^3\.11\b'
       - id: '3.12'
         setup:
           files:
             - sql/3.12.sql
-          filter: '^3\.12 '
+          filter: '^3\.12\b'
       - id: '3.13'
         setup:
           files:
             - sql/3.13.sql
-          filter: '^3\.13 '
+          filter: '^3\.13\b'
   - id: '4'
     # Level 4 = 实验四 数据库恢复与安全性。
     # 4.1-4.8 是 Data Pump 命令（expdp/impdp），判题器解析 .sh 里的参数后自己执行；
@@ -330,124 +330,124 @@ levels:
         setup:
           files:
             - sql/4.1.sh
-          filter: '^4\.1 '
+          filter: '^4\.1\b'
       - id: '4.2'
         setup:
           files:
             - sql/4.2.sh
-          filter: '^4\.2 '
+          filter: '^4\.2\b'
       - id: '4.3'
         setup:
           files:
             - sql/4.3.sh
-          filter: '^4\.3 '
+          filter: '^4\.3\b'
       - id: '4.4'
         setup:
           files:
             - sql/4.4.sql
-          filter: '^4\.4 '
+          filter: '^4\.4\b'
       - id: '4.5'
         setup:
           files:
             - sql/4.5.sh
-          filter: '^4\.5 '
+          filter: '^4\.5\b'
       - id: '4.6'
         setup:
           files:
             - sql/4.6.sh
-          filter: '^4\.6 '
+          filter: '^4\.6\b'
       - id: '4.7'
         setup:
           files:
             - sql/4.7.sh
-          filter: '^4\.7 '
+          filter: '^4\.7\b'
       - id: '4.8'
         setup:
           files:
             - sql/4.8.sh
-          filter: '^4\.8 '
+          filter: '^4\.8\b'
       - id: '4.9'
         setup:
           files:
             - sql/4.9.sql
-          filter: '^4\.9 '
+          filter: '^4\.9\b'
       - id: '4.10'
         setup:
           files:
             - sql/4.10.sql
-          filter: '^4\.10 '
+          filter: '^4\.10\b'
       - id: '4.11'
         setup:
           files:
             - sql/4.11.sql
-          filter: '^4\.11 '
+          filter: '^4\.11\b'
       - id: '4.12'
         setup:
           files:
             - sql/4.12.sql
-          filter: '^4\.12 '
+          filter: '^4\.12\b'
       - id: '4.13'
         setup:
           files:
             - sql/4.13.sql
-          filter: '^4\.13 '
+          filter: '^4\.13\b'
       - id: '4.14'
         setup:
           files:
             - sql/4.14.sql
-          filter: '^4\.14 '
+          filter: '^4\.14\b'
       - id: '4.15'
         setup:
           files:
             - sql/4.15.sql
-          filter: '^4\.15 '
+          filter: '^4\.15\b'
       - id: '4.16'
         setup:
           files:
             - sql/4.16.sql
-          filter: '^4\.16 '
+          filter: '^4\.16\b'
       - id: '4.17'
         setup:
           files:
             - sql/4.17.sql
-          filter: '^4\.17 '
+          filter: '^4\.17\b'
       - id: '4.18'
         setup:
           files:
             - sql/4.18.sql
-          filter: '^4\.18 '
+          filter: '^4\.18\b'
       - id: '4.19'
         setup:
           files:
             - sql/4.19.sql
-          filter: '^4\.19 '
+          filter: '^4\.19\b'
       - id: '4.20'
         setup:
           files:
             - sql/4.20.sql
-          filter: '^4\.20 '
+          filter: '^4\.20\b'
       - id: '4.21'
         setup:
           files:
             - sql/4.21.sql
-          filter: '^4\.21 '
+          filter: '^4\.21\b'
       - id: '4.22'
         setup:
           files:
             - sql/4.22.sql
-          filter: '^4\.22 '
+          filter: '^4\.22\b'
       - id: '4.23'
         setup:
           files:
             - sql/4.23.sql
-          filter: '^4\.23 '
+          filter: '^4\.23\b'
       - id: '4.24'
         setup:
           files:
             - sql/4.24.sql
-          filter: '^4\.24 '
+          filter: '^4\.24\b'
       - id: '4.25'
         setup:
           files:
             - sql/4.25.sql
-          filter: '^4\.25 '
+          filter: '^4\.25\b'

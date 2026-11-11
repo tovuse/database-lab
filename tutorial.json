@@ -58,7 +58,7 @@
             "files": [
               "sql/1.1.sql"
             ],
-            "filter": "^1\\.1 "
+            "filter": "^1\\.1\\b"
           },
           "hints": [
             "用 `SELECT` 语句，从 `dual` 表里查 `USER`",
@@ -74,7 +74,7 @@
             "files": [
               "sql/1.2.sql"
             ],
-            "filter": "^1\\.2 "
+            "filter": "^1\\.2\\b"
           },
           "hints": [
             "建用户用 `CREATE USER 用户名 IDENTIFIED BY 密码;`",
@@ -90,7 +90,7 @@
             "files": [
               "sql/1.3.sql"
             ],
-            "filter": "^1\\.3 "
+            "filter": "^1\\.3\\b"
           },
           "hints": [
             "用 `CREATE TABLE 表名 ( 列名 类型 NOT NULL, 列名 类型 NOT NULL );`",
@@ -106,7 +106,7 @@
             "files": [
               "sql/1.4.sql"
             ],
-            "filter": "^1\\.4 "
+            "filter": "^1\\.4\\b"
           },
           "hints": [
             "用 `ALTER TABLE 表名 ADD CONSTRAINT 约束名 PRIMARY KEY (列名);`",
@@ -122,7 +122,7 @@
             "files": [
               "sql/1.5.sql"
             ],
-            "filter": "^1\\.5 "
+            "filter": "^1\\.5\\b"
           },
           "hints": [
             "表级约束写在列定义后面，用逗号隔开：`CONSTRAINT 约束名 CHECK (条件)`",
@@ -138,7 +138,7 @@
             "files": [
               "sql/1.6.sql"
             ],
-            "filter": "^1\\.6 "
+            "filter": "^1\\.6\\b"
           },
           "hints": [
             "外键写法：`CONSTRAINT 约束名 FOREIGN KEY (本表列) REFERENCES 另一张表(它的列)`",
@@ -154,7 +154,7 @@
             "files": [
               "sql/1.7.sql"
             ],
-            "filter": "^1\\.7 "
+            "filter": "^1\\.7\\b"
           },
           "hints": [
             "默认值写法：`是否借出 CHAR(3) DEFAULT '否' NOT NULL`",
@@ -170,7 +170,7 @@
             "files": [
               "sql/1.8.sql"
             ],
-            "filter": "^1\\.8 "
+            "filter": "^1\\.8\\b"
           },
           "hints": [
             "单行插入：`INSERT INTO 表名 (列名1, 列名2) VALUES (值1, 值2);`",
@@ -186,7 +186,7 @@
             "files": [
               "sql/1.9.sql"
             ],
-            "filter": "^1\\.9 "
+            "filter": "^1\\.9\\b"
           },
           "hints": [
             "`CONSTRAINT ck_读者_性别 CHECK (性别 IN ('男', '女'))`",
@@ -202,7 +202,7 @@
             "files": [
               "sql/1.10.sql"
             ],
-            "filter": "^1\\.10 "
+            "filter": "^1\\.10\\b"
           },
           "hints": [
             "三个外键要分别写，名字别重复",
@@ -218,7 +218,7 @@
             "files": [
               "sql/1.11.sql"
             ],
-            "filter": "^1\\.11 "
+            "filter": "^1\\.11\\b"
           },
           "hints": [
             "预约时间要有默认值：`预约时间 DATE DEFAULT SYSDATE NOT NULL`",
@@ -234,7 +234,7 @@
             "files": [
               "sql/1.12.sql"
             ],
-            "filter": "^1\\.12 "
+            "filter": "^1\\.12\\b"
           },
           "hints": [
             "一行数据一条 `INSERT`，字符串值要用单引号括起来",
@@ -250,7 +250,7 @@
             "files": [
               "sql/1.13.sql"
             ],
-            "filter": "^1\\.13 "
+            "filter": "^1\\.13\\b"
           },
           "hints": [
             "数字列直接写数字，不要加单引号：`VALUES (1, '延期', 10)`",
@@ -266,7 +266,7 @@
             "files": [
               "sql/1.14.sql"
             ],
-            "filter": "^1\\.14 "
+            "filter": "^1\\.14\\b"
           },
           "hints": [
             "6 个列名和 6 个值要一一对应；单价是数字不用引号，分类号是 `CHAR(3)` 要加引号",
@@ -282,7 +282,7 @@
             "files": [
               "sql/1.15.sql"
             ],
-            "filter": "^1\\.15 "
+            "filter": "^1\\.15\\b"
           },
           "hints": [
             "只写 3 列：`图书编号`、`ISBN`、`是否借出`；`备注` 留空不写",
@@ -298,7 +298,7 @@
             "files": [
               "sql/1.16.sql"
             ],
-            "filter": "^1\\.16 "
+            "filter": "^1\\.16\\b"
           },
           "hints": [
             "7 个列名按上面的表头顺序写，字符串值都要加单引号",
@@ -314,7 +314,7 @@
             "files": [
               "sql/1.17.sql"
             ],
-            "filter": "^1\\.17 "
+            "filter": "^1\\.17\\b"
           },
           "hints": [
             "日期用 `TO_DATE('2010/09/19','yyyy/mm/dd')`；空值写 `NULL`",
@@ -330,7 +330,7 @@
             "files": [
               "sql/1.18.sql"
             ],
-            "filter": "^1\\.18 "
+            "filter": "^1\\.18\\b"
           },
           "hints": [
             "4 个列名和 4 个值一一对应；日期用 `TO_DATE('2011/09/11','yyyy/mm/dd')`",
@@ -346,7 +346,7 @@
             "files": [
               "sql/1.19.sql"
             ],
-            "filter": "^1\\.19 "
+            "filter": "^1\\.19\\b"
           },
           "hints": [
             "和前面插数据一样：`INSERT INTO 表名 (列名...) VALUES (值...)`",
@@ -362,7 +362,7 @@
             "files": [
               "sql/1.20.sql"
             ],
-            "filter": "^1\\.20 "
+            "filter": "^1\\.20\\b"
           },
           "hints": [
             "语法：`UPDATE 表名 SET 列 = 新值 WHERE 条件;`",
@@ -378,7 +378,7 @@
             "files": [
               "sql/1.21.sql"
             ],
-            "filter": "^1\\.21 "
+            "filter": "^1\\.21\\b"
           },
           "hints": [
             "语法：`DELETE FROM 表名 WHERE 条件;`",
@@ -394,7 +394,7 @@
             "files": [
               "sql/1.22.sql"
             ],
-            "filter": "^1\\.22 "
+            "filter": "^1\\.22\\b"
           },
           "hints": [
             "语法：`ALTER TABLE 表名 ADD CONSTRAINT 约束名 CHECK (条件);`",
@@ -410,7 +410,7 @@
             "files": [
               "sql/1.23.sql"
             ],
-            "filter": "^1\\.23 "
+            "filter": "^1\\.23\\b"
           },
           "hints": [
             "语法同上，只是条件换成 `LENGTH(身份证编号) = 18`",
@@ -426,7 +426,7 @@
             "files": [
               "sql/1.24.sql"
             ],
-            "filter": "^1\\.24 "
+            "filter": "^1\\.24\\b"
           },
           "hints": [
             "语法：`ALTER TABLE 图书 ADD CONSTRAINT 约束名 CHECK (列名 IN ('值1','值2'));`",
@@ -442,7 +442,7 @@
             "files": [
               "sql/1.25.sql"
             ],
-            "filter": "^1\\.25 "
+            "filter": "^1\\.25\\b"
           },
           "hints": [
             "语法：`ALTER TABLE 表名 MODIFY (列名 NOT NULL);`",
@@ -466,7 +466,7 @@
             "files": [
               "sql/2.1.sql"
             ],
-            "filter": "^2\\.1 "
+            "filter": "^2\\.1\\b"
           },
           "hints": [
             "用 `JOIN`（或 `,` 隐式连接）把 `图书` 和 `书目` 连起来，连接条件是两边的 `ISBN` 相等",
@@ -482,7 +482,7 @@
             "files": [
               "sql/2.2.sql"
             ],
-            "filter": "^2\\.2 "
+            "filter": "^2\\.2\\b"
           },
           "hints": [
             "只要一张表 `书目`，用 `WHERE 出版单位 = '高等教育出版社'`",
@@ -498,7 +498,7 @@
             "files": [
               "sql/2.3.sql"
             ],
-            "filter": "^2\\.3 "
+            "filter": "^2\\.3\\b"
           },
           "hints": [
             "聚合函数：`MAX(单价)`、`AVG(单价)`；保留小数用 `ROUND(值, 2)`",
@@ -514,7 +514,7 @@
             "files": [
               "sql/2.4.sql"
             ],
-            "filter": "^2\\.4 "
+            "filter": "^2\\.4\\b"
           },
           "hints": [
             "用 `COUNT(*)` 数行，条件是「这个借书证号在借阅表里不存在」",
@@ -530,7 +530,7 @@
             "files": [
               "sql/2.5.sql"
             ],
-            "filter": "^2\\.5 "
+            "filter": "^2\\.5\\b"
           },
           "hints": [
             "用 `IS NULL` 不是 `= NULL`；日期格式化用 `TO_CHAR(列, 'yyyy/mm/dd')`",
@@ -546,7 +546,7 @@
             "files": [
               "sql/2.6.sql"
             ],
-            "filter": "^2\\.6 "
+            "filter": "^2\\.6\\b"
           },
           "hints": [
             "从 `书目` 出发 `LEFT JOIN 图书`，再 `COUNT(t.图书编号)`",
@@ -562,7 +562,7 @@
             "files": [
               "sql/2.7.sql"
             ],
-            "filter": "^2\\.7 "
+            "filter": "^2\\.7\\b"
           },
           "hints": [
             "两个条件：`l.借书证号 = '20061234'`、`l.归还日期 IS NULL`",
@@ -578,7 +578,7 @@
             "files": [
               "sql/2.8.sql"
             ],
-            "filter": "^2\\.8 "
+            "filter": "^2\\.8\\b"
           },
           "hints": [
             "`GROUP BY r.借书证号, r.姓名` 之后 `HAVING COUNT(*) >= 2`",
@@ -594,7 +594,7 @@
             "files": [
               "sql/2.9.sql"
             ],
-            "filter": "^2\\.9 "
+            "filter": "^2\\.9\\b"
           },
           "hints": [
             "`读者 → 借阅 → 图书 → 书目`，四个 JOIN",
@@ -610,7 +610,7 @@
             "files": [
               "sql/2.10.sql"
             ],
-            "filter": "^2\\.10 "
+            "filter": "^2\\.10\\b"
           },
           "hints": [
             "`图书分类 JOIN 书目`（分类必有书目，内连接可以）、`LEFT JOIN 图书`（可能没藏）",
@@ -626,7 +626,7 @@
             "files": [
               "sql/2.11.sql"
             ],
-            "filter": "^2\\.11 "
+            "filter": "^2\\.11\\b"
           },
           "hints": [
             "用 `COUNT(DISTINCT 借书证号)`",
@@ -642,7 +642,7 @@
             "files": [
               "sql/2.12.sql"
             ],
-            "filter": "^2\\.12 "
+            "filter": "^2\\.12\\b"
           },
           "hints": [
             "以 Internet 开头：`LIKE 'Internet%'`",
@@ -658,7 +658,7 @@
             "files": [
               "sql/2.13.sql"
             ],
-            "filter": "^2\\.13 "
+            "filter": "^2\\.13\\b"
           },
           "hints": [
             "`借阅 JOIN 罚款分类 ON l.罚款分类号 = f.罚款分类号`，然后 `GROUP BY l.图书编号`",
@@ -674,7 +674,7 @@
             "files": [
               "sql/2.14.sql"
             ],
-            "filter": "^2\\.14 "
+            "filter": "^2\\.14\\b"
           },
           "hints": [
             "`借阅 l LEFT JOIN 罚款分类 f ON l.罚款分类号 = f.罚款分类号`",
@@ -690,7 +690,7 @@
             "files": [
               "sql/2.15.sql"
             ],
-            "filter": "^2\\.15 "
+            "filter": "^2\\.15\\b"
           },
           "hints": [
             "外层：遍历读者；中层：遍历文学类书目；内层：看这个读者借没借过这本书",
@@ -714,7 +714,7 @@
             "files": [
               "sql/3.1.sql"
             ],
-            "filter": "^3\\.1 "
+            "filter": "^3\\.1\\b"
           },
           "hints": [
             "结构是 `CREATE OR REPLACE PROCEDURE 过程名 (参数名 类型, ...) IS BEGIN ... END;`，后面再单独一行 `/`",
@@ -730,7 +730,7 @@
             "files": [
               "sql/3.2.sql"
             ],
-            "filter": "^3\\.2 "
+            "filter": "^3\\.2\\b"
           },
           "hints": [
             "`INSERT INTO 借阅 (列1, 列2, ...) VALUES (值1, 值2, ...);`，四个列名和四个值要一一对应",
@@ -746,7 +746,7 @@
             "files": [
               "sql/3.3.sql"
             ],
-            "filter": "^3\\.3 "
+            "filter": "^3\\.3\\b"
           },
           "hints": [
             "顺序是 `BEGIN INSERT...; UPDATE...; EXCEPTION WHEN OTHERS THEN ...; END;`，`EXCEPTION` 不能写在 `END` 后面",
@@ -762,7 +762,7 @@
             "files": [
               "sql/3.4.sql"
             ],
-            "filter": "^3\\.4 "
+            "filter": "^3\\.4\\b"
           },
           "hints": [
             "调用也是一个 PL/SQL 块，同样要用单独一行的 `/` 结束",
@@ -778,7 +778,7 @@
             "files": [
               "sql/3.5.sql"
             ],
-            "filter": "^3\\.5 "
+            "filter": "^3\\.5\\b"
           },
           "hints": [
             "和 3.1 一样，只是把名字和参数换掉",
@@ -794,7 +794,7 @@
             "files": [
               "sql/3.6.sql"
             ],
-            "filter": "^3\\.6 "
+            "filter": "^3\\.6\\b"
           },
           "hints": [
             "变量声明写在 `IS` 和 `BEGIN` 之间，不要写在 `BEGIN` 里面",
@@ -810,7 +810,7 @@
             "files": [
               "sql/3.7.sql"
             ],
-            "filter": "^3\\.7 "
+            "filter": "^3\\.7\\b"
           },
           "hints": [
             "把 `INSERT INTO 预约 ...;` 加在 `END IF;` 后面、`END;` 前面",
@@ -826,7 +826,7 @@
             "files": [
               "sql/3.8.sql"
             ],
-            "filter": "^3\\.8 "
+            "filter": "^3\\.8\\b"
           },
           "hints": [
             "结构和 3.1 一样，三个参数都要写上（第三个这关暂时用不到，但接口先定好）",
@@ -842,7 +842,7 @@
             "files": [
               "sql/3.9.sql"
             ],
-            "filter": "^3\\.9 "
+            "filter": "^3\\.9\\b"
           },
           "hints": [
             "`SET 字段1 = 值1, 字段2 = 值2`，两个赋值之间是逗号，不是 `AND`",
@@ -858,7 +858,7 @@
             "files": [
               "sql/3.10.sql"
             ],
-            "filter": "^3\\.10 "
+            "filter": "^3\\.10\\b"
           },
           "hints": [
             "语法是 `CREATE SEQUENCE 序列名 START WITH 起始值 INCREMENT BY 步长;`",
@@ -874,7 +874,7 @@
             "files": [
               "sql/3.11.sql"
             ],
-            "filter": "^3\\.11 "
+            "filter": "^3\\.11\\b"
           },
           "hints": [
             "`VALUES (序列_借阅.NEXTVAL, p_借书证号, p_图书编号, SYSDATE)`",
@@ -890,7 +890,7 @@
             "files": [
               "sql/3.12.sql"
             ],
-            "filter": "^3\\.12 "
+            "filter": "^3\\.12\\b"
           },
           "hints": [
             "语法是 `CREATE OR REPLACE TRIGGER 名 AFTER INSERT ON 表 FOR EACH ROW BEGIN ... END; /`",
@@ -906,7 +906,7 @@
             "files": [
               "sql/3.13.sql"
             ],
-            "filter": "^3\\.13 "
+            "filter": "^3\\.13\\b"
           },
           "hints": [
             "`UPDATE 借阅 SET 罚款分类号 = 3, 备注 = '丢失' WHERE ... AND 归还日期 IS NULL`",
@@ -930,7 +930,7 @@
             "files": [
               "sql/4.1.sh"
             ],
-            "filter": "^4\\.1 "
+            "filter": "^4\\.1\\b"
           },
           "hints": [
             "命令必须以 `expdp` 开头，紧接着是连接串，然后 `DIRECTORY=目录对象名`",
@@ -946,7 +946,7 @@
             "files": [
               "sql/4.2.sh"
             ],
-            "filter": "^4\\.2 "
+            "filter": "^4\\.2\\b"
           },
           "hints": [
             "参数之间用空格分隔，每个都是 `名字=值`",
@@ -962,7 +962,7 @@
             "files": [
               "sql/4.3.sh"
             ],
-            "filter": "^4\\.3 "
+            "filter": "^4\\.3\\b"
           },
           "hints": [
             "在上一关命令的最后加 ` TABLES=预约`",
@@ -978,7 +978,7 @@
             "files": [
               "sql/4.4.sql"
             ],
-            "filter": "^4\\.4 "
+            "filter": "^4\\.4\\b"
           },
           "hints": [
             "语法是 `DROP TABLE 表名 CASCADE CONSTRAINTS;`",
@@ -994,7 +994,7 @@
             "files": [
               "sql/4.5.sh"
             ],
-            "filter": "^4\\.5 "
+            "filter": "^4\\.5\\b"
           },
           "hints": [
             "把 4.1 那个 expdp 骨架的第一个字母 `e` 换成 `i`（`impdp`）",
@@ -1010,7 +1010,7 @@
             "files": [
               "sql/4.6.sh"
             ],
-            "filter": "^4\\.6 "
+            "filter": "^4\\.6\\b"
           },
           "hints": [
             "三个参数和 expdp 写法一样，只是 `LOGFILE` 建议改名成 `imp_yuyue.log`",
@@ -1026,7 +1026,7 @@
             "files": [
               "sql/4.7.sh"
             ],
-            "filter": "^4\\.7 "
+            "filter": "^4\\.7\\b"
           },
           "hints": [
             "把 4.1 的骨架后面直接加 `SCHEMAS=COURSE`",
@@ -1042,7 +1042,7 @@
             "files": [
               "sql/4.8.sh"
             ],
-            "filter": "^4\\.8 "
+            "filter": "^4\\.8\\b"
           },
           "hints": [
             "在 4.7 的命令后面再加 `DUMPFILE=course.dmp LOGFILE=course.log`，注意别和 `TABLES` 混用",
@@ -1058,7 +1058,7 @@
             "files": [
               "sql/4.9.sql"
             ],
-            "filter": "^4\\.9 "
+            "filter": "^4\\.9\\b"
           },
           "hints": [
             "用 `ALTER TABLE` 改表的属性，关键字是 `ENABLE ROW MOVEMENT`",
@@ -1074,7 +1074,7 @@
             "files": [
               "sql/4.10.sql"
             ],
-            "filter": "^4\\.10 "
+            "filter": "^4\\.10\\b"
           },
           "hints": [
             "两条语句，各占一行，每句结尾一个分号",
@@ -1090,7 +1090,7 @@
             "files": [
               "sql/4.11.sql"
             ],
-            "filter": "^4\\.11 "
+            "filter": "^4\\.11\\b"
           },
           "hints": [
             "语法是 `FLASHBACK TABLE 表名 TO TIMESTAMP (时间表达式);`",
@@ -1106,7 +1106,7 @@
             "files": [
               "sql/4.12.sql"
             ],
-            "filter": "^4\\.12 "
+            "filter": "^4\\.12\\b"
           },
           "hints": [
             "两条语句：`CREATE USER 名字 IDENTIFIED BY 密码;` + `GRANT ... TO 名字;`",
@@ -1122,7 +1122,7 @@
             "files": [
               "sql/4.13.sql"
             ],
-            "filter": "^4\\.13 "
+            "filter": "^4\\.13\\b"
           },
           "hints": [
             "一条 `SELECT * FROM user_role_privs;` 就够了",
@@ -1138,7 +1138,7 @@
             "files": [
               "sql/4.14.sql"
             ],
-            "filter": "^4\\.14 "
+            "filter": "^4\\.14\\b"
           },
           "hints": [
             "一条 `SELECT * FROM user_sys_privs;`",
@@ -1154,7 +1154,7 @@
             "files": [
               "sql/4.15.sql"
             ],
-            "filter": "^4\\.15 "
+            "filter": "^4\\.15\\b"
           },
           "hints": [
             "一条 `SELECT * FROM user_tab_privs;`",
@@ -1170,7 +1170,7 @@
             "files": [
               "sql/4.16.sql"
             ],
-            "filter": "^4\\.16 "
+            "filter": "^4\\.16\\b"
           },
           "hints": [
             "一条 `CREATE ROLE 角色名;`，一条 `GRANT CONNECT TO 角色名;`",
@@ -1186,7 +1186,7 @@
             "files": [
               "sql/4.17.sql"
             ],
-            "filter": "^4\\.17 "
+            "filter": "^4\\.17\\b"
           },
           "hints": [
             "语法是 `GRANT 权限 ON 对象 TO 角色;`",
@@ -1202,7 +1202,7 @@
             "files": [
               "sql/4.18.sql"
             ],
-            "filter": "^4\\.18 "
+            "filter": "^4\\.18\\b"
           },
           "hints": [
             "三条 GRANT，对象分别换掉，其余一样",
@@ -1218,7 +1218,7 @@
             "files": [
               "sql/4.19.sql"
             ],
-            "filter": "^4\\.19 "
+            "filter": "^4\\.19\\b"
           },
           "hints": [
             "`CREATE USER` + `GRANT 角色 TO 用户;`，两条",
@@ -1234,7 +1234,7 @@
             "files": [
               "sql/4.20.sql"
             ],
-            "filter": "^4\\.20 "
+            "filter": "^4\\.20\\b"
           },
           "hints": [
             "`CREATE OR REPLACE VIEW 名字 AS SELECT ...`，SELECT 里要 JOIN 图书分类",
@@ -1250,7 +1250,7 @@
             "files": [
               "sql/4.21.sql"
             ],
-            "filter": "^4\\.21 "
+            "filter": "^4\\.21\\b"
           },
           "hints": [
             "两条：`CREATE USER 用户_USER1 IDENTIFIED BY view2026;` + `GRANT CONNECT TO 用户_USER1;`",
@@ -1266,7 +1266,7 @@
             "files": [
               "sql/4.22.sql"
             ],
-            "filter": "^4\\.22 "
+            "filter": "^4\\.22\\b"
           },
           "hints": [
             "只有一条 GRANT，对象是 `VIEW_READER`",
@@ -1282,7 +1282,7 @@
             "files": [
               "sql/4.23.sql"
             ],
-            "filter": "^4\\.23 "
+            "filter": "^4\\.23\\b"
           },
           "hints": [
             "`CREATE PROFILE 名字 LIMIT 参数 值 参数 值;`",
@@ -1298,7 +1298,7 @@
             "files": [
               "sql/4.24.sql"
             ],
-            "filter": "^4\\.24 "
+            "filter": "^4\\.24\\b"
           },
           "hints": [
             "用 `ALTER USER 用户名 ACCOUNT UNLOCK;`",
@@ -1314,7 +1314,7 @@
             "files": [
               "sql/4.25.sql"
             ],
-            "filter": "^4\\.25 "
+            "filter": "^4\\.25\\b"
           },
           "hints": [
             "`REVOKE 权限 ON 对象 FROM 用户;` + `DROP USER 用户名;`",
