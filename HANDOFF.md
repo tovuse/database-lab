@@ -4,6 +4,66 @@
 
 ---
 
+## 🔴 最新（2026-11-11 深夜）：判题架构搬到 COURSE，L1–L3 真机全绿
+
+用户原话：「**写了不运行，怎么知道数据库是否建立了？而且 docker 配置内有
+oracle，只写文件并保存并不能达到操控数据库的行为，这是无效的**」
+
+这句话点出了架构级问题：**学生写的 SQL 从来没进过自己的库**。
+已修复并在真机验证。
+
+### 改动（commit `75e09d7` + `d49d54b`）
+
+| 项 | 改前 | 改后 |
+|---|---|---|
+| 判题连接 | TESTER schema（一次性沙箱） | **COURSE schema（学生自己的库）** |
+| 前置重放 | 每个测试手写 `replayAll([...])`，链常断 | **`loadUpTo(stepId)`** 自动按序重放 |
+| initdb | 预装 7 张表 + 27 行 | **不预装**（4 步→3 步） |
+| L2/L3/L4 进关 | `loadBaseline.sh` 清空重建 | **删掉**（会抹掉学生成果） |
+| 库级对象清理 | COURSE 权限不足 | 走 TESTER 特权通道 |
+| 面板步骤标题 | 编译时丢失 | 注入 content 首行 |
+| 正文首句 | 概念铺垫 | **动作指令**（78/78） |
+
+### 真机验证（Codespace `ominous-space-guacamole-wr64x4j5v4x3g6q`）
+
+| 验证项 | 结果 | 证据 |
+|---|---|---|
+| COURSE 初始为空 | ✅ | `SELECT COUNT(*) FROM user_tables` → **0** |
+| 判题连接是 COURSE | ✅ | `DB user: course`，`COURSE_CREDS: course/course@localhost:1521/FREEPDB1` |
+| **学生建的表真的落到自己库** | ✅ **决定性验证** | 写完 1.3 后 `sqlplus` 查到 `图书分类` 表 |
+| 1.3 判题 | ✅ | 3 passing / 0 failing |
+| **L1 全部 25 步** | ✅ | 含 1.1 / 1.2 / 1.8 |
+| **L2 全部 15 步** | ✅ | 查询结果与 refSql 一致 |
+| **L3 全部 13 步** | ✅ | 存储过程 / 触发器 / 序列 |
+| **合计 L1–L3 共 53 步** | ✅ **128 passing / 0 failing** | JSON reporter 精确统计 |
+| L4 的 25 步 | ⚠️ 未验证 | 回归时 `sql/4.*` 模板是空的，失败全是「没有可执行的 SQL」 |
+
+**统计方法**：`--reporter json` 输出到文件，再用 node 解析 `failures[].fullTitle`
+提取步骤号。不要用 `grep '^  N) '`——`--reporter dot` 不打印步骤名。
+
+### 已知坑（这次踩到的）
+
+1. **`.mocharc.json` 的 `spec: ["./test/*.test.js"]` 会叠加命令行参数**。
+   单跑 `mocha test/3.1.test.js` 实际会加载全部 78 个文件，
+   统计完全失真。**必须用 `--spec 'test/3.*.test.js'` 覆盖**。
+
+2. **回归前必须填充 `sql/` 模板**，否则失败原因是「没有可执行的 SQL」，
+   不是判题逻辑问题。填充规则：
+   - L1/L3：`cp answers/N.M.sql sql/N.M.sql`
+   - L2：从测试的 `assertQueryEquals('sql/N.M.sql', \`...\`)` 里抽 refSql
+   - L4：`answers/4.*` 有文件，但 4.1~4.8 是 `.sh`
+
+3. **链里不能放「有副作用」的答案**。已排除：
+   - `1.8`（插临时图书 9999999，且外键指向 1.14 才插的书目）
+   - `3.4`（`BEGIN 借书(100,...) END;` 真插借阅行，污染 3.6/3.7/3.11）
+   - 整个 L2（`answers/2.12.sql` 是判题辅助数据不是答案）
+
+4. **COURSE 缺 `DROP ANY ROLE` / `DROP PROFILE`**，所以用户/角色/PROFILE
+   的清理必须走 TESTER 特权连接。已在 initdb 里补了这两个权限，
+   但判题仍走特权通道（双保险）。
+
+---
+
 ## ✅ 更新（2026-11-11 晚）：两个诉求都已真机验证通过
 
 改名阻塞已解除，新 Codespace 真机构建 + 判题全部跑通。**实测证据如下。**
