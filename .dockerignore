@@ -1,6 +1,15 @@
-# 构建课程镜像时不需要的东西。
-# 不加这个文件，仓库里的 node_modules、.git 和报告文档都会进构建上下文，
-# 每次改一行 Dockerfile 都要重传几百 MB。
+# Files the course image build does not need.
+#
+# IMPORTANT: this file must stay pure ASCII.
+# Docker BuildKit sends .dockerignore contents to the builder as the
+# "excludePatterns" header, and that header rejects non-printable
+# (i.e. non-ASCII) bytes:
+#   ERROR: failed to build: ... header key "excludePatterns"
+#   contains value with non-printable ASCII characters
+# That is exactly what happened when this file carried Chinese comments
+# plus a pattern ending in the Chinese baseline file name. Keep comments
+# in English and avoid non-ASCII file names in patterns below.
+
 .git
 .github
 node_modules
@@ -9,7 +18,8 @@ coderoad/node_modules
 .tmp
 .DS_Store
 
-# 课程内容与文档：镜像只需要 coderoad 的两个清单文件 + answers 里的基线 SQL
+# Course content and docs. The image only needs the two coderoad
+# manifests plus the baseline SQL under answers/.
 TUTORIAL.md
 coderoad.yaml
 tutorial.json
@@ -19,8 +29,10 @@ make_templates.py
 sql
 scripts
 
-# 注意：这里用 answers/* 而不是 answers。
-# Docker 的规则是"父目录被整体排除后，里面的文件无法再用 ! 加回来"，
-# 所以必须只排除目录内容，才能把基线 SQL 单独留下。
+# Keep only the baseline SQL from answers/.
+# Docker cannot re-include a file whose parent directory was excluded
+# wholesale, so exclude the directory *contents* and then re-add.
+# The baseline file has a non-ASCII name (00_<CJK>.sql); it is matched
+# by the ASCII-safe pattern "00_*.sql" instead of spelling it out.
 answers/*
-!answers/00_基线.sql
+!answers/00_*.sql
