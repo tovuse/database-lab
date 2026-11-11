@@ -285,9 +285,21 @@ function main() {
         ...(cfgLevel.setup ? { setup: cfgLevel.setup } : {}),
         steps: mdLevel.steps.map((mdStep, si) => {
           const cfgStep = (cfgLevel.steps || [])[si] || {};
+          // CodeRoad 0.17.2 的步骤卡片只渲染 content（见 webview 的
+          // Vt.content / Jt 渲染器），**不渲染 step.title**。
+          // 所以标题必须拼进 content 第一行，否则面板上只看到「1.1」编号
+          // 加一段正文，学生不知道这一步要干什么。
+          // 保留 title 字段是为了给其它消费者（API/测试）用，不占地方。
+          const stepTitle = mdStep.title || '';
+          const stepBody = mdStep.content || '';
+          const contentWithTitle = stepTitle
+            ? `**${mdStep.id} ${stepTitle}**\n\n${stepBody}`
+            : stepBody;
+
           return {
             id: String(mdStep.id),
-            content: mdStep.content || '',
+            title: stepTitle,
+            content: contentWithTitle,
             setup: cfgStep.setup || {},
             ...(cfgStep.solution ? { solution: cfgStep.solution } : {}),
             ...(mdStep.hints.length ? { hints: mdStep.hints } : {}),
