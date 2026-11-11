@@ -1,15 +1,26 @@
 /**
  * CodeRoad 判题工具库
  *
- * 架构：
- *   COURSE  schema —— 学生自己玩的库（手动跑 sqlplus 时用）
- *   TESTER  schema —— 判题专用。每次测试前清空，然后把学生前几关的 .sql
- *                     按顺序重放进来，最后断言。
+ * 架构（2026-11 起）：
+ *   COURSE  schema —— 学生自己的库。判题也在这里跑：每次 before() 先清空
+ *                    schema 内对象，再按步骤顺序重放前置关卡的 answers/<id>.sql，
+ *                    最后执行学生这一步写的文件，然后断言。
+ *   TESTER  schema —— 只剩一个用途：删库级全局对象（用户 / 角色 / PROFILE）。
+ *                    COURSE 没有 DROP ANY ROLE / DROP PROFILE 权限，
+ *                    这类对象只能借 TESTER 的 DBA 角色清理（见 resetSecurityObjects）。
  *
- * 为什么在 TESTER 里重放而不是直接查 COURSE：
- *   - 幂等：学生每次保存都会重新跑，直接查 COURSE 会"表已存在"报错
- *   - 可回溯：重放前置关卡文件，学生改坏了前面的表，这一步就会失败（正是我们要的）
- *   - 不污染：测试的破坏性操作不碰学生的库
+ * 为什么改成直接在 COURSE 里判（以前是在 TESTER 里重放）：
+ *   - 学生写的 SQL 真的落到自己库里。以前判题过了，学生切回 sqlplus 却看不到表，
+ *     因为那些表只建在 TESTER —— 这是最伤人的体验问题。
+ *   - 判题走的就是学生日后要用的那条路径（同一个用户、同一套权限），
+ *     "权限不足" 这类问题会在判题时暴露，而不是等交作业才发现。
+ *
+ * 代价与对策：
+ *   - 判题会改学生的库。每次 before() 都先 resetSchema()，状态由前置链重建，
+ *     所以可以反复保存反复跑（幂等）；学生把前面的表改坏了，这一步就会失败，
+ *     这正是"可回溯"要的效果。
+ *   - 库级全局对象不归 schema 管，resetSchema 清不掉也不该清：
+ *     需要时显式调 resetSecurityObjects()，它内部借 TESTER 删。
  */
 const oracledb = require('oracledb');
 const fs = require('node:fs');
@@ -17,7 +28,30 @@ const path = require('node:path');
 
 const WORKSPACE = path.join(process.cwd(), '..');
 
-const DB = {
+/**
+ * 课程库（COURSE）的连接参数 —— 判题主连接。
+ *
+ * DB 和 COURSE_CREDS 必须是同一份配置，所以这里只定义一次、DB 直接引用：
+ *   - DB 是历史名字，所有测试和实验四都在用（DB.connectString 传给新用户登录）
+ *   - COURSE_CREDS 是语义化名字，courseConn()/execAsCourse() 那一节在用
+ * 一旦拆成两份，就会出现「判题连的是 A 库、数据泵导的是 B 库」这种极难查的错。
+ */
+const COURSE_CREDS = {
+  user: process.env.COURSE_USER || 'course',
+  password: process.env.COURSE_PASSWORD || 'course',
+  connectString: process.env.COURSE_CONN || 'localhost:1521/FREEPDB1',
+};
+
+const DB = COURSE_CREDS;
+
+/**
+ * 特权连接（TESTER）的账号。TESTER 有 DBA 角色，能删用户/角色/PROFILE。
+ *
+ * 注意：它**不是**判题主连接。业务 SQL 一律走 COURSE，
+ * 否则又回到「判题在 TESTER 里跑、学生库里什么都没有」的老问题。
+ * 只在 resetSecurityObjects() 内部用到。
+ */
+const TESTER_CREDS = {
   user: process.env.TESTER_USER || 'tester',
   password: process.env.TESTER_PASSWORD || 'tester',
   connectString: process.env.TESTER_CONN || 'localhost:1521/FREEPDB1',
@@ -35,6 +69,10 @@ async function closeAll() {
   if (_conn) {
     await _conn.close().catch(() => {});
     _conn = null;
+  }
+  if (_privConn) {
+    await _privConn.close().catch(() => {});
+    _privConn = null;
   }
   if (typeof _courseConn !== 'undefined' && _courseConn) {
     await _courseConn.close().catch(() => {});
@@ -67,6 +105,96 @@ async function query(sql, binds = {}) {
 async function scalar(sql, binds = {}) {
   const rows = await query(sql, binds);
   return rows.length ? rows[0][0] : null;
+}
+
+// ---------------------------------------------------------------------
+// 特权连接：只给「清理库级全局对象」用
+// ---------------------------------------------------------------------
+
+/**
+ * 为什么需要单独的连接：
+ *   CREATE USER / CREATE ROLE / CREATE PROFILE 建出来的对象属于整个数据库，
+ *   不属于某个 schema，所以 COURSE 自己删不掉（它没有 DROP ANY ROLE、
+ *   DROP PROFILE 这类权限，DBA 角色也不该给 COURSE —— 学生的库该是普通用户）。
+ *   TESTER 在初始化脚本里拿到了 DBA，用它删是唯一稳妥的办法。
+ *
+ * 这两个函数刻意不导出：一旦谁都能随手拿到 DBA 连接，
+ * 判题代码就会慢慢滑回「图省事都走特权连接」，架构又退化回去了。
+ */
+let _privConn = null;
+async function privilegedConn() {
+  if (!_privConn) _privConn = await oracledb.getConnection(TESTER_CREDS);
+  return _privConn;
+}
+
+async function execPrivileged(sql, binds = {}) {
+  const c = await privilegedConn();
+  return c.execute(sql, binds, { autoCommit: true });
+}
+
+async function queryPrivileged(sql, binds = {}) {
+  const c = await privilegedConn();
+  const r = await c.execute(sql, binds, {
+    outFormat: oracledb.OUT_FORMAT_ARRAY,
+    fetchArraySize: 2000,
+  });
+  if (!r.rows) return [];
+  return r.rows.map((row) =>
+    row.map((v) => {
+      if (v === null || v === undefined) return null;
+      if (typeof v === 'number') return v;
+      if (v instanceof Date) return v.toISOString().slice(0, 10);
+      return String(v).trim();
+    })
+  );
+}
+
+/**
+ * 执行一条 DROP，只吞「对象本来就不存在」，其它错误照抛。
+ *
+ * 「不存在」在 Oracle 里不是同一个错误码，每种对象都有自己的：
+ *   ORA-01918 用户不存在      ORA-01919 角色不存在
+ *   ORA-02380 PROFILE 不存在  ORA-00942 视图不存在
+ * 只认 ORA-01918 是不够的：4.16/4.17/4.23 判题时角色和 PROFILE 本来就不存在，
+ * 漏掉另外三个码会让这些关卡在"清理"阶段就失败。
+ *
+ * 为什么不能一律 .catch(() => {})：那样连 ORA-01940（用户还有会话连着，删不掉）、
+ * ORA-28014（系统用户不能删）、权限不足都会被静默吃掉，现象是「上一关的脏对象
+ * 还在、这一关却报名字已占用」，学生和老师都看不出真实原因。
+ */
+const NOT_EXISTS_CODES = ['ORA-01918', 'ORA-01919', 'ORA-02380', 'ORA-00942'];
+
+async function dropIfExists(stmt, bindArgs = [], connKind = 'privileged') {
+  const run = connKind === 'privileged' ? execPrivileged : exec;
+  try {
+    await run(stmt, bindArgs);
+  } catch (e) {
+    const msg = e.message || String(e);
+    if (NOT_EXISTS_CODES.some((code) => msg.includes(code))) return;
+
+    // 删用户最常见的失败是「这个人还连着库」（ORA-01940），但错误信息里不说是谁连着。
+    // 这里补一条可执行的现象说明，省掉"去 v$session 里翻"这一步。
+    let hint = '';
+    const u = /^DROP\s+USER\s+"([^"]+)"/i.exec(stmt);
+    if (u) {
+      try {
+        const rows = await queryPrivileged(
+          `SELECT COUNT(*) FROM v$session WHERE username = :1`,
+          [u[1].toUpperCase()]
+        );
+        const n = rows.length ? Number(rows[0][0]) : 0;
+        if (n > 0) {
+          hint = `\n  → 现象：还有 ${n} 个会话以「${u[1]}」登录着 → 检查：先断开这些会话（或让它们退出）再删用户`;
+        }
+      } catch {
+        // 查不到 v$session 只是少一条提示，不该盖掉真正要报的 DROP 失败
+      }
+    }
+
+    throw new Error(
+      `清理对象失败：${stmt} → ${msg.split('\n')[0]}${hint}\n  → 检查：当前连接是否有权限、对象名是否拼错`
+    );
+  }
 }
 
 // ---------------------------------------------------------------------
@@ -144,7 +272,7 @@ function splitStatements(text) {
 }
 
 /**
- * 重放一个 .sql 文件到 TESTER schema。
+ * 重放一个 .sql 文件到 COURSE schema（学生的库）。
  * 最后一条 SELECT 的结果会被返回（用于 1.1 这类"查一下"的关卡）。
  * @param {string} relPath 相对工作区根的路径
  * @returns {Promise<{count:number, rows:Array}>}
@@ -200,7 +328,22 @@ async function replayAll(files) {
   for (const f of files) await replay(f);
 }
 
-/** 清空 TESTER schema 所有对象 */
+/**
+ * 清空 COURSE schema 里的对象：触发器 / 视图 / 过程函数包类型 / 序列 / 表。
+ *
+ * 只清 schema 内的东西，**不碰**库级全局对象（用户、角色、PROFILE）：
+ *   - 那些对象不属于任何一个 schema，DROP 需要 DROP ANY ROLE / DROP PROFILE
+ *     这类权限，而 COURSE 故意没拿（学生库就该是普通用户）；
+ *   - 更重要的是，1.2、4.12 这些关卡的产品就是"库里存在这个用户"，
+ *     判题时顺手删掉会让学生写的账号失效。
+ * 需要清理它们时显式调 resetSecurityObjects()，那边借 TESTER 的 DBA 删。
+ *
+ * 删除顺序有讲究：触发器 → 视图 → 过程 → 序列 → 表。
+ * 表放最后，因为表上的外键/触发器会拖着别的对象；
+ * DROP TABLE 带 CASCADE CONSTRAINTS PURGE，既解开外键依赖，
+ * 也不把表丢进回收站（否则 user_tables 里看不见、但名字仍被占用，
+ * 下一次 CREATE TABLE 会报 ORA-00955，这个坑非常难查）。
+ */
 async function resetSchema() {
   const lists = [
     ['TRIGGER', `SELECT trigger_name FROM user_triggers`],
@@ -219,6 +362,8 @@ async function resetSchema() {
     try {
       rows = await query(sql);
     } catch {
+      // 数据字典视图查不到一般说明这一轮没东西可删（或权限刚好不够），
+      // 继续往下清别的类型，比整轮失败更有用。
       continue;
     }
     for (const row of rows) {
@@ -230,9 +375,155 @@ async function resetSchema() {
         SEQUENCE: `DROP SEQUENCE "${name}"`,
         TABLE: `DROP TABLE "${name}" CASCADE CONSTRAINTS PURGE`,
       }[type] || `DROP ${type} "${name}"`;
+      // 清场阶段的失败不阻断流程：这张表可能被上一轮已删掉的视图依赖着，
+      // 多跑一轮就干净了。真正的错误会在后续 replay 时以"名字已占用"暴露出来。
       await exec(stmt).catch(() => {});
     }
   }
+}
+
+// ---------------------------------------------------------------------
+// 按步骤顺序重放前置链（loadUpTo）
+// ---------------------------------------------------------------------
+
+/** 步骤号 `1.7` → 可比较的数字对。按数字排而不是字符串，1.10 才不会排到 1.3 前面。 */
+function parseStepId(stepId) {
+  const m = /^(\d+)\.(\d+)$/.exec(String(stepId).trim());
+  if (!m) {
+    throw new Error(
+      `步骤号「${stepId}」格式不对 → 检查：要写成「层.序号」，例如 1.7、3.12、4.19`
+    );
+  }
+  return { layer: Number(m[1]), num: Number(m[2]) };
+}
+
+/**
+ * 找出「比 stepId 更早」的所有步骤答案文件，按步骤顺序返回。
+ *
+ * 为什么扫目录而不是硬编码 1.1~3.13 的列表：
+ *   课程步数改过两轮（50 → 78），硬编码的清单每次都要同步改，
+ *   漏改的症状是"某一步的基线上少了张表"，非常难发现。扫目录天然跟着文件走。
+ *
+ * 过滤规则：
+ *   - 只认 `answers/<层>.<序号>.sql`，所以 00.sql（全量基线）、
+ *     3.7_seed.sql / 3.8_seed.sql（判题辅助数据）都不会被当成步骤答案。
+ *   - 跳过第 2 层：L2 是纯查询题，答案（结果集）内嵌在测试的 refSql 里，
+ *     执行它们不会改变 schema；answers/2.12.sql 是"造 Internet 书名"的判题辅助数据，
+ *     不是 2.12 的答案，重放它会给基线多塞 3 本书，污染后面 L3 的断言。
+ *   - 跳过 1.1 / 1.2：1.1 是环境自检，1.2 建的是**数据库用户**（全局对象）。
+ *     这两个文件现在不存在，但这里显式拉黑，而不是依赖"文件不存在"：
+ *     哪天有人补了 answers/1.2.sql，链里就会突然多出一条 CREATE USER，
+ *     在 COURSE 连接上执行会立刻变成"用户已存在"或反复建/删全局对象的副作用。
+ *     判题不应该被动地跟着文件目录改变行为。
+ *   - 跳过 1.8：它是「验证 DEFAULT '否'」的教学步骤，产物是一条临时图书
+ *     （9999999）。这条数据**不该留在基线里**，理由有两个：
+ *       1. 它的 ISBN 指向 书目，而书目数据要到 1.14 才插入，按顺序重放到
+ *          1.8 会撞 ORA-02291（违反 fk_图书_书目）；
+ *       2. 就算插进去了，全库终态会变成 28 行而非 27 行，后面任何
+ *          COUNT(*) 断言都会与基线不符。
+ *     1.8 自己的测试（1.8.test.js）会单独准备前置数据并直接重放学生文件，
+ *     不依赖这条链。
+ *   - 跳过 3.4：它的答案是 `BEGIN 借书(100,'20051001','1005050'); END;`，
+ *     即**调用上一步建好的过程**，会真的插一行借阅、并把 图书 1005050 改成
+ *     「是」。这是演示「过程能跑」，不是要往基线里留数据。
+ *     重放它会让后续每一步都跑在一个被污染的状态上：
+ *       3.6/3.7  9787506336239 不再「有可借图书」，预约本该成功却不再抛错
+ *       3.11     序列_借阅 首次 NEXTVAL=100 与这行流水号撞 PK（ORA-00001）
+ *     3.4 自己的测试（3.4.test.js）会自己调过程并断言副作用，不需要链来预演。
+ *   - 同理，凡是「调用过程/触发副作用」的答案都不该进链。判断标准：
+ *     这一步的答案执行后会不会改变基线数据行数或状态？会 → 不进链。
+ */
+const STEPS_WITHOUT_REPLAY = new Set(['1.1', '1.2', '1.8', '3.4']);
+
+function stepAnswerChain(stepId) {
+  const target = parseStepId(stepId);
+  if (target.layer === 4) {
+    throw new Error(
+      `loadUpTo 不支持第 4 层的步骤（${stepId}）→ 检查：实验四要用 loadCourseBaseline()，它的对象（用户/角色/转储）不适合用重放链构建`
+    );
+  }
+
+  const dir = path.join(WORKSPACE, 'answers');
+  if (!fs.existsSync(dir)) {
+    throw new Error(
+      `没找到 answers 目录 → 检查：判题是否在 coderoad/ 目录下启动（WORKSPACE 是它的上一级）`
+    );
+  }
+
+  return fs
+    .readdirSync(dir)
+    .map((f) => {
+      const m = /^(\d+)\.(\d+)\.sql$/.exec(f);
+      return m
+        ? { id: `${m[1]}.${m[2]}`, layer: Number(m[1]), num: Number(m[2]), file: `answers/${f}` }
+        : null;
+    })
+    .filter(Boolean)
+    .filter((s) => s.layer !== 2 && s.layer !== 4)
+    .filter((s) => !STEPS_WITHOUT_REPLAY.has(s.id))
+    .filter((s) => s.layer < target.layer || (s.layer === target.layer && s.num < target.num))
+    .sort((a, b) => a.layer - b.layer || a.num - b.num);
+}
+
+/**
+ * 把课程重置到「某一步刚开始」的状态，然后执行学生这一步的文件。
+ *
+ * 流程：
+ *   1. 清空 COURSE schema（表/视图/过程/序列/触发器）—— 全局对象不动
+ *   2. 按步骤顺序重放所有更早步骤的 answers/<id>.sql，没有文件的静默跳过
+ *   3. 执行学生的 studentFile（默认 sql/<stepId>.sql）
+ *
+ * 为什么要有这个函数：
+ *   以前每个测试自己手写 replayAll(['answers/1.3.sql', ...])，
+ *   写漏一个前置文件就会报"表不存在"，学生看到的是"我的表建了呀"。
+ *   统一成"从课程开头一路重放到这一步"，前置条件的正确性只维护一处。
+ *
+ * 为什么必须先清空：
+ *   判题会在 COURSE 里反复跑（学生每保存一次就跑一次）。
+ *   不先清空，第二次跑就会撞 ORA-00955（表已存在），
+ *   学生会误以为自己的 SQL 写错了。
+ *
+ * @param {string} stepId  形如 '1.7'、'3.12'、'4.19'
+ * @param {string} [studentFile]  学生文件路径，默认 `sql/<stepId>.sql`
+ * @returns {Promise<{replayed:string[], studentFile:string, count:number, rows:Array}>}
+ *   count/rows 是学生文件的重放结果（最后一条 SELECT 的行），方便 1.1 这类关卡直接断言
+ */
+async function loadUpTo(stepId, studentFile) {
+  const target = parseStepId(stepId);
+  const student = studentFile || `sql/${target.layer}.${target.num}.sql`;
+  const chain = stepAnswerChain(stepId);
+
+  // 1. 先清场：COURSE 里的旧对象一个不留（全局对象不归这里管）
+  await resetSchema();
+
+  // 2. 重放前置关卡的标准答案
+  //
+  // 说明：链里不会出现 1.1 / 1.2 / 1.8 / 3.4，也不会出现整个 L2
+  // （见 STEPS_WITHOUT_REPLAY 上方的理由）。所以这里重放的都是
+  // 「只改 schema 和数据、不调用过程、不留临时行」的答案文件。
+  for (const step of chain) {
+    try {
+      await replay(step.file);
+    } catch (e) {
+      // replay() 的报错已经是「<file> 执行失败：ORA-xxx → 出错语句：...」，
+      // 这里把前缀换成本函数的说法，避免文件名出现两遍。
+      const detail = String(e.message || e).replace(`${step.file} 执行失败：`, '');
+      throw new Error(
+        `重放 ${step.file} 失败：${detail}\n  → 检查：这是判题器自己的标准答案链出错，不是学生写错了；` +
+          `通常是前置步骤缺表/缺数据，或某一步的答案文件本身与前面的步骤顺序冲突`
+      );
+    }
+  }
+
+  // 3. 最后执行学生这一步写的文件
+  const result = await replay(student);
+
+  return {
+    replayed: chain.map((s) => s.file),
+    studentFile: student,
+    count: result.count,
+    rows: result.rows,
+  };
 }
 
 // ---------------------------------------------------------------------
@@ -544,7 +835,7 @@ async function assertCompiled(name) {
 }
 
 /**
- * 在 TESTER schema 里直接调用一个存储过程。
+ * 在 COURSE schema 里直接调用一个存储过程。
  * 失败时把 Oracle 的错误信息原样带出来（学生写的过程报错要能看到）。
  */
 async function callProcedure(callSql) {
@@ -608,22 +899,38 @@ function readDumpLog(logName) {
 }
 
 /**
- * 清空 TESTER 里的实验四对象（用户/角色/PROFILE 建在库级别，不在 schema 里）。
- * 用 DBA 身份删，失败也继续——目的只是让重跑幂等。
+ * 清理实验四的对象，让重跑幂等。
+ *
+ * 分两类走不同连接，这是本函数唯一容易写错的地方：
+ *   - 视图：建在 COURSE schema 里，走 COURSE 的普通连接删 —— 学生自己就能删自己的视图。
+ *   - 用户 / 角色 / PROFILE：库级全局对象，不属于任何 schema。
+ *     COURSE 没有 DROP ANY ROLE / DROP PROFILE 权限，走它必然 ORA-01031。
+ *     所以这几类走 execPrivileged()（TESTER，有 DBA 角色）。
+ *
+ * 关于 .catch(() => {})：
+ *   以前一律吞掉所有错误，结果连 ORA-01940（用户还有会话连着，删不掉）都被吃掉了，
+ *   现象是「上一关的 用户_USER1 还在，这一关 CREATE USER 报 ORA-01920」，
+ *   而日志里什么都没有 —— 排查成本极高。
+ *   现在只静默「对象本来就不存在」的那几个码（见 dropIfExists 里的
+ *   NOT_EXISTS_CODES），其它错误原样抛出。
  */
 async function resetSecurityObjects(names = {}) {
   const { users = [], roles = [], profiles = [], views: vws = [] } = names;
+
+  // 视图在 COURSE schema 内，走普通连接（学生库里的东西，不需要任何特权）
   for (const v of vws) {
-    await exec(`DROP VIEW "${v}"`).catch(() => {});
+    await dropIfExists(`DROP VIEW "${v}"`, [], 'course');
   }
+
+  // 以下三类是库级全局对象，只有 TESTER 的 DBA 角色删得掉
   for (const u of users) {
-    await exec(`DROP USER "${u}" CASCADE`).catch(() => {});
+    await dropIfExists(`DROP USER "${u}" CASCADE`);
   }
   for (const r of roles) {
-    await exec(`DROP ROLE "${r}"`).catch(() => {});
+    await dropIfExists(`DROP ROLE "${r}"`);
   }
   for (const p of profiles) {
-    await exec(`DROP PROFILE "${p}" CASCADE`).catch(() => {});
+    await dropIfExists(`DROP PROFILE "${p}" CASCADE`);
   }
 }
 
@@ -682,16 +989,11 @@ async function expectCallError(sql, keyword, hint) {
 
 // ---------------------------------------------------------------------
 // 实验四：以 COURSE 身份判题
-// 前三章判题都在 TESTER schema 里重放（不污染学生库）；
-// 但实验四的对象（用户、角色、PROFILE、DIRECTORY）是库级别的，
-// 而且 expdp/impdp 只有 COURSE 能跑，所以这一章必须在 COURSE 侧操作。
+// 判题主连接本来就指向 COURSE（见文件开头的 DB/COURSE_CREDS），
+// 这一节保留的是实验四专属的辅助函数：expdp/impdp 只有 COURSE 能跑，
+// 而这一章的对象（用户、角色、PROFILE、DIRECTORY）又是库级别的。
+// 注意：COURSE_CREDS 已于文件开头统一定义，这里不再重复声明。
 // ---------------------------------------------------------------------
-
-const COURSE_CREDS = {
-  user: process.env.COURSE_USER || 'course',
-  password: process.env.COURSE_PASSWORD || 'course',
-  connectString: process.env.COURSE_CONN || 'localhost:1521/FREEPDB1',
-};
 
 let _courseConn = null;
 async function courseConn() {
@@ -1024,6 +1326,7 @@ module.exports = {
   replay,
   replayAll,
   resetSchema,
+  loadUpTo,
   assertTable,
   assertColumn,
   assertConstraint,

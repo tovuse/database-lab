@@ -1,15 +1,9 @@
 const assert = require('node:assert');
-const { resetSchema, replayAll, replay, assertRowCount, query, closeAll } = require('./utils');
+const { loadUpTo, assertRowCount, query, closeAll } = require('./utils');
 
 describe('1.14 插入「书目」数据（4 行）', () => {
   before(async () => {
-    await resetSchema();
-    await replayAll([
-      'answers/1.3.sql', 'answers/1.4.sql',
-      'answers/1.6.sql',
-      'answers/1.12.sql',
-    ]);
-    await replay('sql/1.14.sql');
+    await loadUpTo('1.14');
   });
   after(async () => { await closeAll(); });
 

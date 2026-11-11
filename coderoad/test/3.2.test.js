@@ -1,7 +1,6 @@
 const assert = require('node:assert');
 const {
-  resetSchema,
-  replay,
+  loadUpTo,
   query,
   scalar,
   assertObject,
@@ -12,14 +11,13 @@ const {
 
 /**
  * 3.2 给「借书」补上 INSERT
- * 判题：重放基线 → 重放学生的过程 → 真的调一次 → 断言 借阅 表多了一条记录。
+ * 判题：loadUpTo 重放前置链 → 重放学生的过程 → 真的调一次 → 断言 借阅 表多了一条记录。
  * 只断言「插入」这一件事：图书状态是下一关才改的。
  */
 describe('3.2 补全借书的插入逻辑', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
-    await replay('sql/3.2.sql');
+    await loadUpTo('3.2');
+    // 判题辅助：调一次过程，看它到底插没插
     await callProcedure(`BEGIN 借书(100, '20051001', '1005050'); END;`);
   });
 

@@ -1,7 +1,6 @@
 const assert = require('node:assert');
 const {
-  resetSchema,
-  replay,
+  loadUpTo,
   query,
   scalar,
   closeAll,
@@ -9,14 +8,13 @@ const {
 
 /**
  * 3.4 调用「借书」存储过程
- * 判题：先建好标准答案的 借书 过程，再重放学生这一关的调用语句，断言数据真的变了。
+ * 判题：前置链里的 answers/3.3.sql 建好 借书 过程，再重放学生这一关的调用语句，断言数据真的变了。
+ * 注意 3.4 自己不在链里（STEPS_WITHOUT_REPLAY）——它是调用过程、会改数据，
+ * 放进链会污染后续步骤的基线。loadUpTo('3.4') 只会重放到 3.3。
  */
 describe('3.4 调用借书存储过程', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
-    await replay('answers/3.3.sql');  // 前置：标准答案的过程
-    await replay('sql/3.4.sql');            // 学生这一关：调用
+    await loadUpTo('3.4');
   });
 
   after(async () => {

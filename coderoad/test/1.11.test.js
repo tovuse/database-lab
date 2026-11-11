@@ -1,16 +1,9 @@
 const assert = require('node:assert');
-const { resetSchema, replayAll, replay, assertTable, assertColumn, assertConstraint, exec, scalar, closeAll } = require('./utils');
+const { loadUpTo, replay, assertTable, assertColumn, assertConstraint, exec, scalar, closeAll } = require('./utils');
 
 describe('1.11 建「预约」表', () => {
   before(async () => {
-    await resetSchema();
-    await replayAll([
-      'answers/1.3.sql', 'answers/1.4.sql',
-      'answers/1.5.sql', 'answers/1.6.sql',
-      'answers/1.7.sql', 'answers/1.9.sql',
-      'answers/1.10.sql',
-    ]);
-    await replay('sql/1.11.sql');
+    await loadUpTo('1.11');
   });
   after(async () => { await closeAll(); });
 

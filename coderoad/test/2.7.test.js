@@ -1,10 +1,9 @@
 const assert = require('node:assert');
-const { resetSchema, replay, assertQueryEquals, closeAll } = require('./utils');
+const { loadUpTo, assertQueryEquals, closeAll } = require('./utils');
 
 describe('2.7 查询 20061234 借阅未还的图书', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
+    await loadUpTo('2.7');
   });
   after(async () => { await closeAll(); });
 

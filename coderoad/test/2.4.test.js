@@ -1,15 +1,13 @@
 const assert = require('node:assert');
 const {
-  resetSchema,
-  replay,
+  loadUpTo,
   assertQueryEquals,
   closeAll,
 } = require('./utils');
 
 describe('2.4 统计从未借过书的读者人数', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
+    await loadUpTo('2.4');
   });
 
   after(async () => {

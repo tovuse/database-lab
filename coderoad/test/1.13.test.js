@@ -1,13 +1,9 @@
 const assert = require('node:assert');
-const { resetSchema, replayAll, replay, assertRowCount, query, closeAll } = require('./utils');
+const { loadUpTo, assertRowCount, query, closeAll } = require('./utils');
 
 describe('1.13 插入「罚款分类」数据（3 行）', () => {
   before(async () => {
-    await resetSchema();
-    await replayAll([
-      'answers/1.5.sql',
-    ]);
-    await replay('sql/1.13.sql');
+    await loadUpTo('1.13');
   });
   after(async () => { await closeAll(); });
 

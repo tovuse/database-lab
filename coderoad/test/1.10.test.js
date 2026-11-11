@@ -1,18 +1,12 @@
 const assert = require('node:assert');
 const {
-  resetSchema, replayAll, replay, assertTable, assertColumn,
+  loadUpTo, replayAll, assertTable, assertColumn,
   assertConstraint, expectError, closeAll,
 } = require('./utils');
 
 describe('1.10 建「借阅」表（三个外键）', () => {
   before(async () => {
-    await resetSchema();
-    await replayAll([
-      'answers/1.3.sql', 'answers/1.4.sql',
-      'answers/1.5.sql', 'answers/1.6.sql',
-      'answers/1.7.sql', 'answers/1.9.sql',
-    ]);
-    await replay('sql/1.10.sql');
+    await loadUpTo('1.10');
 
     // 判题器自己准备上级数据，让下面两条负向测试只可能撞到「借阅」自己的约束：
     //   图书编号 1005050 存在、读者 20051001 存在、分类 1 存在，而 9999999 不存在

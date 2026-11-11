@@ -1,10 +1,9 @@
 const assert = require('node:assert');
-const { resetSchema, replay, assertTable, assertColumn, assertConstraint, expectError, closeAll } = require('./utils');
+const { loadUpTo, assertTable, assertColumn, assertConstraint, expectError, closeAll } = require('./utils');
 
 describe('1.5 建「罚款分类」表', () => {
   before(async () => {
-    await resetSchema();
-    await replay('sql/1.5.sql');
+    await loadUpTo('1.5');
   });
   after(async () => { await closeAll(); });
 

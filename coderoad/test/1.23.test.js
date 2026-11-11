@@ -1,11 +1,9 @@
 const assert = require('node:assert');
-const { resetSchema, replay, assertConstraint, expectError, exec, scalar, closeAll } = require('./utils');
+const { loadUpTo, assertConstraint, expectError, exec, scalar, closeAll } = require('./utils');
 
 describe('1.23 给「读者」的身份证加 CHECK 约束（18 位）', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
-    await replay('sql/1.23.sql');
+    await loadUpTo('1.23');
   });
   after(async () => { await closeAll(); });
 

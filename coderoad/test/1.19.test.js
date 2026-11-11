@@ -1,11 +1,9 @@
 const assert = require('node:assert');
-const { resetSchema, replay, query, scalar, closeAll } = require('./utils');
+const { loadUpTo, query, scalar, closeAll } = require('./utils');
 
 describe('1.19 增：向「图书分类」插入一行', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
-    await replay('sql/1.19.sql');
+    await loadUpTo('1.19');
   });
   after(async () => { await closeAll(); });
 

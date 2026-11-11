@@ -1,17 +1,9 @@
 const assert = require('node:assert');
-const { resetSchema, replayAll, replay, assertRowCount, query, closeAll } = require('./utils');
+const { loadUpTo, assertRowCount, query, closeAll } = require('./utils');
 
 describe('1.18 插入「预约」数据（1 行）', () => {
   before(async () => {
-    await resetSchema();
-    await replayAll([
-      'answers/1.3.sql', 'answers/1.4.sql',
-      'answers/1.6.sql', 'answers/1.9.sql',
-      'answers/1.11.sql',
-      'answers/1.12.sql', 'answers/1.14.sql',
-      'answers/1.16.sql',
-    ]);
-    await replay('sql/1.18.sql');
+    await loadUpTo('1.18');
   });
   after(async () => { await closeAll(); });
 

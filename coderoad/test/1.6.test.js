@@ -1,14 +1,9 @@
 const assert = require('node:assert');
-const { resetSchema, replayAll, replay, exec, assertTable, assertColumn, assertConstraint, expectError, closeAll } = require('./utils');
+const { loadUpTo, exec, assertTable, assertColumn, assertConstraint, expectError, closeAll } = require('./utils');
 
 describe('1.6 建「书目」表（含外键）', () => {
   before(async () => {
-    await resetSchema();
-    await replayAll([
-      'answers/1.3.sql', 'answers/1.4.sql',
-      'answers/1.5.sql',
-    ]);
-    await replay('sql/1.6.sql');
+    await loadUpTo('1.6');
   });
   after(async () => { await closeAll(); });
 

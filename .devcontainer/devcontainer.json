@@ -59,7 +59,7 @@
 
   "forwardPorts": [1521],
 
-  "//postCreate": "只剩幂等兜底：等库就绪、确认 Node/判题依赖/基线，缺什么补什么，并打印自动开课所需的变量",
+  "//postCreate": "只剩幂等兜底：等库就绪、确认 Node/判题依赖/COURSE 可登录，缺什么补什么，并打印自动开课所需的变量。基线数据不再自动装载（L1 让学生自己建表，预装会撞 ORA-00955）",
   "postCreateCommand": "bash scripts/postCreate.sh",
 
   "//postStart": "停止再启动 codespace 时 Oracle 要几十秒才可连，判题前先等它",

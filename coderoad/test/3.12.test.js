@@ -1,7 +1,6 @@
 const assert = require('node:assert');
 const {
-  resetSchema,
-  replay,
+  loadUpTo,
   scalar,
   exec,
   assertObject,
@@ -15,9 +14,7 @@ const {
  */
 describe('3.12 建借阅触发器', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
-    await replay('sql/3.12.sql');
+    await loadUpTo('3.12');
   });
 
   after(async () => {

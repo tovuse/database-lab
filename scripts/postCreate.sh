@@ -5,7 +5,9 @@
 #   镜像（Dockerfile + /container-entrypoint-initdb.d/10_db_setup.sh）负责——
 #     - 装 Node 20（/opt/node）
 #     - 预装判题依赖（/opt/coderoad-deps）
-#     - 建 TESTER、给 COURSE 授权、建 DUMPDIR、装载基线（首次建库时自动跑）
+#     - 建 TESTER、给 COURSE 授权、建 DUMPDIR（首次建库时自动跑）
+#     - 基线数据**不再预装**：L1 的 1.3~1.18 由学生自己建表插数据，
+#       预装会让学生第一次 CREATE TABLE 撞 ORA-00955
 #   这个脚本只剩三件事：
 #     1. 确认数据库已就绪（Oracle 首次建库 2–3 分钟，postCreate 可能抢在它前面）
 #     2. 确认镜像该做的那几项真的到位了，没到位就现场补（全部幂等）
@@ -16,7 +18,9 @@
 #     （早期版本用 set -e，npm install 一失败脚本就退出，
 #      清理脚手架那一步从未执行，工作区里一直留着 TUTORIAL.md）
 #   - 关键步骤失败要显式报错并以非零码退出，报错要能看出是哪一步、怎么修。
-#   - 基线数据不再依赖 CodeRoad 的 level setup
+#   - 基线数据不再由任何自动流程装载：L1（1.3~1.18）就是让学生自己建这 7 张表、
+#     插这 27 行数据。预装会让学生的 CREATE TABLE 直接撞 ORA-00955。
+#   - 现在也不再依赖 CodeRoad 的 level setup
 #     （通过 Continue 弹窗进入下一关时，level setup 不一定触发）。
 set -uo pipefail
 cd "${WORKSPACE_FOLDER:-$PWD}"
@@ -118,9 +122,15 @@ else
 fi
 
 echo ""
-echo "===== 5/5 收尾：基线 / 脚手架 / 自动开课变量 ====="
-# 基线兜底：镜像 initdb 在"COURSE 库为空"时已装好，这里只在表数不足 7 时补。
-# loadBaseline.sh 是先清空再重建的，天然幂等；但这个判断能避免无谓地清掉学生的实验成果。
+echo "===== 5/5 收尾：COURSE 库状态 / 脚手架 / 自动开课变量 ====="
+# 基线不再兜底装载（架构调整）：L1 的 1.3~1.18 由学生自己建那 7 张表、插那 27 行数据。
+# 如果这里还去调 loadBaseline.sh，刚建好的库会被预装成 7 张表，
+# 学生第一次 CREATE TABLE 就撞 ORA-00955，整条 L1 是断的。
+#
+# 所以这里只做"看一眼、报个数"，不做任何装载动作，也**不把非 0 张表当失败**：
+#   - 全新库：0 张表 —— 正常，学生从 1.3 开始自己建
+#   - 已有 N 张表：说明学生正在做/已经做过 L1（或 postCreate 在重启后又跑了一次），
+#     也是正常状态，绝不能因为"不是 0"就报错或清库。
 TABLE_CNT=$(sqlplus -S -L COURSE/course@//localhost:1521/FREEPDB1 2>/dev/null <<'SQL' | tr -d ' \t\r\n'
 SET HEADING OFF
 SET FEEDBACK OFF
@@ -129,14 +139,18 @@ SELECT COUNT(*) FROM user_tables;
 EXIT;
 SQL
 )
-if [ "${TABLE_CNT:-0}" -ge 7 ] 2>/dev/null; then
-  ok "COURSE 库里有 ${TABLE_CNT} 张表，基线已就绪"
-elif bash scripts/loadBaseline.sh >/tmp/baseline.log 2>&1; then
-  ok "基线已补装（7 张表）"
-else
-  fail "基线装载失败" "手工执行 bash scripts/loadBaseline.sh，或看 /tmp/baseline.log"
-  tail -5 /tmp/baseline.log >&2
-fi
+case "${TABLE_CNT:-}" in
+'' | *[!0-9]*)
+  # 查不到表数通常是数据库还没完全就绪；第 1 步已经做过等待，这里只提示不报错。
+  echo "  ⚠️  查不到 COURSE 库的表数（数据库可能还没就绪）"
+  ;;
+0)
+  ok "COURSE 库为空（0 张表），符合预期：L1 由学生自己建表"
+  ;;
+*)
+  ok "COURSE 库已有 ${TABLE_CNT} 张表（学生已开始/完成建表，保持不动）"
+  ;;
+esac
 
 mkdir -p /tmp/dump
 # 删掉讲义和配置，让工作区看起来像一个干净的新数据库项目

@@ -1,6 +1,6 @@
 const assert = require('node:assert');
 const {
-  resetSchema,
+  loadUpTo,
   replay,
   scalar,
   assertObject,
@@ -16,10 +16,9 @@ const {
  */
 describe('3.8 还书过程改图书状态', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
+    await loadUpTo('3.8');
+    // 判题辅助：造一条「已借出、还没还」的记录，供还书过程操作
     await replay('answers/3.8_seed.sql');
-    await replay('sql/3.8.sql');
     await callProcedure(`BEGIN 还书('20051001', '1005050', 1); END;`);
   });
 

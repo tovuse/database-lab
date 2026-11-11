@@ -6,8 +6,15 @@
 #   本来就被浪费掉了。这个镜像把能提前做的全部做进镜像层：
 #     1. Node.js 20 + git（判题器要跑 mocha，CodeRoad 配课要 git）
 #     2. 判题依赖（预装到 /opt/coderoad-deps，postCreate 时拷进工作区）
-#     3. 建库初始化（/container-entrypoint-initdb.d：TESTER、授权、DUMPDIR、基线数据）
+#     3. 建库初始化（/container-entrypoint-initdb.d：TESTER、授权、DUMPDIR）
 #   这三样都不进学生的 git 工作区，学生看到的是一个干净的项目。
+#
+#   ⚠️ 基线数据（7 张表 + 27 行）**不在这里自动装载**：
+#     课程 L1 的 1.3~1.18 让学生自己建这 7 张表、插这 27 行数据，学生的 SQL
+#     要真的落到自己的 COURSE 库里。如果建库时就预装，学生第一次 CREATE TABLE
+#     会直接撞 ORA-00955: name is already used by an existing object。
+#     基线文件仍然会 COPY 进镜像（见下面 /opt/course/baseline/），
+#     但只在显式设置 COURSE_LOAD_BASELINE=1 时由 scripts/loadBaseline.sh 装载。
 #
 # ⚠️ 绝对不要在这里写 ENTRYPOINT / CMD。
 #    基础镜像的 entrypoint 负责启动 listener、建 PDB、建 APP_USER 和跑初始化脚本；
@@ -83,12 +90,16 @@ RUN sed -i 's#https://registry\.npmmirror\.com#https://registry.npmjs.org#g' pac
 # /container-entrypoint-initdb.d 下的 *.sh / *.sql。这就是把准备工作做进镜像的正确入口。
 # 同一份脚本再放一份到 /opt/course/：postCreate 会再跑它一次做幂等兜底
 # （覆盖"从旧镜像/预构建恢复时跳过初始化阶段"的情况）。
+# 注意这个脚本只建 TESTER / 授权 / DUMPDIR，**不装基线数据**（原因见文件头）。
 COPY .devcontainer/initdb/10_db_setup.sh /container-entrypoint-initdb.d/10_db_setup.sh
 COPY .devcontainer/initdb/10_db_setup.sh /opt/course/dbSetup.sh
 
 # 基线数据：只拷这一个文件，运行期工作区里的 answers/ 原样保留（判题器要用整目录）
-# 改成 ASCII 文件名存进镜像：这个路径会被 initdb 脚本按字面量引用，避免中文在
-# sqlplus 的 @ 命令和不同 locale 下出岔子
+# 改成 ASCII 文件名存进镜像：这个路径会被 scripts/loadBaseline.sh 按字面量引用，避免中文在
+# sqlplus 的 @ 命令和不同 locale 下出岔子。
+# ⚠️ 这个文件**只是备而不用**：本镜像不会自动把它装进 COURSE（L1 由学生自己建表，
+#    预装会让 CREATE TABLE 撞 ORA-00955）。只在显式设置 COURSE_LOAD_BASELINE=1 时，
+#    由 scripts/loadBaseline.sh 读取并装载；保留它是为了库里被清空/改坏时的恢复手段。
 COPY answers/00.sql /opt/course/baseline/00_baseline.sql
 
 # 脚本必须有执行位：entrypoint 对 .sh 的处理是"可执行就用子进程跑，否则 source 进来"。
@@ -105,7 +116,9 @@ RUN chmod 755 /container-entrypoint-initdb.d/10_db_setup.sh /opt/course/dbSetup.
 # 每项对应一个真实故障：
 #   node/npm    → 判题器跑不起来
 #   git         → CodeRoad 配课 `git ls-remote` 失败，进不了课程
-#   initdb 脚本 → TESTER / 基线不会被创建
+#   initdb 脚本 → TESTER / 授权 / DUMPDIR 不会被创建
+#   基线 SQL    → 文件必须存在但**不自动装载**（COURSE_LOAD_BASELINE=1 时才会用到），
+#                 缺了它库里被清空后就无法恢复，所以仍然在这里 fail fast
 #   /tmp/dump   → 实验四 expdp/impdp 失败
 # bash -n 顺带验语法：CRLF 或拼错会在这里暴露，而不是开机时炸掉整个容器。
 RUN set -eux; \

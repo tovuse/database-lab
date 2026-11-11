@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
-# 建库初始化：判题用户 TESTER、课程授权、DUMPDIR、基线数据
+# 建库初始化：判题用户 TESTER、课程授权、DUMPDIR
+#
+# 注意：本脚本**不再预装基线数据**（7 张表 + 27 行）。
+#   课程 L1 的 1.3~1.18 让学生自己建这 7 张表、插这 27 行数据；
+#   如果建库时就把表装进 COURSE，学生第一次 CREATE TABLE 就会撞
+#   ORA-00955: name is already used by an existing object —— 这条路是断的。
+#   基线文件仍然保留在镜像里（/opt/course/baseline/00_baseline.sql），
+#   只在显式设置 COURSE_LOAD_BASELINE=1 时由 scripts/loadBaseline.sh 装载。
 #
 # 谁来跑、什么时候跑：
 #   1. 镜像首次建库时，gvenzl/oracle-free 的 entrypoint 在"建好 PDB 和 APP_USER(COURSE)"之后
@@ -12,7 +19,7 @@
 #    - 不用 set -e：任何一条 SQL 失败都只记录下来，继续往下走。
 #    - 不写 exit 1：脚本永远以 0 退出。
 #    - sqlplus 报 ORA 错误也返回 0（这正是我们想要的：不因单条失败而中断建库），
-#      真正的结果靠"装完再数一遍表"来验证。
+#      真正的结果靠第 3 步的 check_conn / DUMPDIR 查询来验证。
 #
 # ⚠️ 两种调用方式都要安全：
 #    gvenzl 的 entrypoint 对 .sh 的处理是"有执行位就 `"${f}"` 跑，没有就 `. "${f}"` source 进来"。
@@ -30,13 +37,12 @@ fi
 set -uo pipefail
 
 PDB="${COURSE_PDB:-FREEPDB1}"
-BASELINE_SQL="${COURSE_BASELINE_SQL:-/opt/course/baseline/00_baseline.sql}"
 
 echo ""
 echo "======================================================================"
-echo " 课程建库初始化：TESTER 用户 / 授权 / DUMPDIR / 基线数据"
+echo " 课程建库初始化：TESTER 用户 / 授权 / DUMPDIR"
 echo "   目标 PDB：${PDB}"
-echo "   基线文件：${BASELINE_SQL}"
+echo "   基线数据：不自动装载（由 scripts/loadBaseline.sh 按需装）"
 echo "======================================================================"
 
 # --- 等数据库能真正接受连接 ---------------------------------------------------
@@ -58,7 +64,7 @@ wait_ready
 # --- 步骤 1：TESTER 用户 -----------------------------------------------------
 # 幂等：先查 dba_users，存在就跳过，避免 ORA-01920 刷屏。
 # 注意 sqlplus 的输出带 tab 和前导空白，先 tr 掉空白再比。
-echo "▶ 1/4 检查并创建判题用户 TESTER"
+echo "▶ 1/3 检查并创建判题用户 TESTER"
 TESTER_EXISTS=$(
   sqlplus -S -L / as sysdba 2>/dev/null <<SQL | tr -d ' \t\r\n'
 WHENEVER SQLERROR CONTINUE
@@ -89,9 +95,24 @@ fi
 # 万一不存在（有人在 devcontainer 里改了 APP_USER），这一整段会报 ORA-01917，被下面记成警告，
 # 不会影响容器启动；postCreate 里还会重试一次。
 #
-# 注意：DROP ROLE / DROP PROFILE 不是可授权的权限名，必须逐个 GRANT 分开写，
-#       写在一起会报 ORA-00990（这个坑实测踩过）。
-echo "▶ 2/4 给 COURSE 授权 + 建 DUMPDIR"
+# 下面两条（DROP ANY ROLE / DROP PROFILE）是**为判题服务的，不是给学生用的**：
+#   判题（实验四）会以 COURSE 身份建全局角色和 PROFILE，跑完要清理掉再重跑，
+#   否则第二次判题会撞 ORA-01921（角色已存在）/ ORA-02379（PROFILE 已存在）。
+#   为什么只补这两条、而不是给 ALTER SYSTEM 或 DBA：
+#     - 判题真正需要的只有"删掉自己刚建的全局对象"这一件事；
+#     - DROP ANY ROLE 只影响角色、DROP PROFILE 只影响 PROFILE，
+#       碰不到数据字典里的核心对象，爆炸半径最小；
+#     - ALTER SYSTEM 能改实例参数、能杀会话，一旦学生的 SQL 被误用或注入，
+#       后果不可控，远超判题所需。
+#   学生手动跑 sqlplus 时同样拥有这些权限，但课程内容里没有任何一步要求他们用；
+#   这里是"够用即可"，不是"全给 DBA"。
+#
+# 注意：权限名必须按 Oracle 的系统权限写，写错会报 ORA-00990 之类的"无效权限"错误。
+#       本段用了 WHENEVER SQLERROR CONTINUE，报错会被静默吞掉、权限根本没授上，
+#       所以两条各占一行，方便 grep 和排查。
+#         - 角色    → DROP ANY ROLE（没有 DROP ROLE 这个权限，必须带 ANY）
+#         - PROFILE → DROP PROFILE（这个系统权限本身就不带 ANY）
+echo "▶ 2/3 给 COURSE 授权 + 建 DUMPDIR"
 sqlplus -S -L / as sysdba >/dev/null 2>&1 <<SQL
 WHENEVER SQLERROR CONTINUE
 ALTER SESSION SET CONTAINER = ${PDB};
@@ -100,8 +121,10 @@ GRANT ALTER USER TO COURSE;
 GRANT DROP USER TO COURSE;
 GRANT CREATE ROLE TO COURSE;
 GRANT GRANT ANY ROLE TO COURSE;
+GRANT DROP ANY ROLE TO COURSE;
 GRANT CREATE PROFILE TO COURSE;
 GRANT ALTER PROFILE TO COURSE;
+GRANT DROP PROFILE TO COURSE;
 GRANT SELECT ANY DICTIONARY TO COURSE;
 CREATE OR REPLACE DIRECTORY dumpdir AS '/tmp/dump';
 GRANT READ, WRITE ON DIRECTORY dumpdir TO COURSE;
@@ -112,7 +135,7 @@ echo "  ✅ 授权语句已执行（逐条容错）"
 
 # --- 步骤 3：验证 -------------------------------------------------------------
 # 这三项是判题能否工作的最低前提。失败只报错、不中断。
-echo "▶ 3/4 验证"
+echo "▶ 3/3 验证"
 check_conn() {
   local conn="$1" label="$2"
   if sqlplus -S -L "$conn" 2>/dev/null <<<'SELECT 1 FROM dual;' | tr -d ' \t\r\n' | grep -q '1'; then
@@ -142,80 +165,11 @@ else
   echo "  ⚠️  DUMPDIR 没建出来（实验四的 expdp/impdp 会失败）"
 fi
 
-# --- 步骤 4：基线数据 ---------------------------------------------------------
-# 把 7 张表 + 27 行原始数据装进 COURSE schema，学生打开就能 SELECT 看到东西。
-#
-# 判题完全不依赖这一步（判题器在 TESTER 里自己重放基线），
-# 所以这里失败也不影响判题，只影响学生用 sqlplus 探索时的观感。
-# 只在 COURSE 库"完全空"时才装：
-#   - 0 张表 = 全新库，装基线（首次建库的正常路径）
-#   - >=7 张表 = 已装过，跳过
-#   - 1–6 张表 = 学生已经自己建过表了（比如做完了 Level 1）。这时硬塞基线会撞 ORA-00955，
-#     还可能在已有表里插重复数据。交给 scripts/loadBaseline.sh（先清空再重建）处理。
-echo "▶ 4/4 装载基线数据（仅在 COURSE 库为空时）"
-BASELINE_DONE=0
-if [ -f "${BASELINE_SQL}" ]; then
-  TABLE_CNT=$(
-    sqlplus -S -L COURSE/course@//localhost:1521/${PDB} 2>/dev/null <<'SQL' | tr -d ' \t\r\n'
-WHENEVER SQLERROR CONTINUE
-SET HEADING OFF
-SET FEEDBACK OFF
-SET PAGESIZE 0
-SELECT COUNT(*) FROM user_tables;
-EXIT;
-SQL
-  )
-  case "${TABLE_CNT:-0}" in
-  '' | *[!0-9]*)
-    echo "  ⚠️  查不到 COURSE 库的表数（连不上？），跳过基线装载"
-    ;;
-  0)
-    # 注意：用了 WHENEVER SQLERROR CONTINUE，所以 sqlplus 的退出码永远是 0，
-    # 不能靠它判断成败。装完再数一遍表才算数。
-    sqlplus -S -L COURSE/course@//localhost:1521/${PDB} >/dev/null 2>&1 <<SQL
-WHENEVER SQLERROR CONTINUE
-@${BASELINE_SQL}
-COMMIT;
-EXIT;
-SQL
-    AFTER_CNT=$(
-      sqlplus -S -L COURSE/course@//localhost:1521/${PDB} 2>/dev/null <<'SQL' | tr -d ' \t\r\n'
-WHENEVER SQLERROR CONTINUE
-SET HEADING OFF
-SET FEEDBACK OFF
-SET PAGESIZE 0
-SELECT COUNT(*) FROM user_tables;
-EXIT;
-SQL
-    )
-    if [ "${AFTER_CNT:-0}" -ge 7 ] 2>/dev/null; then
-      echo "  ✅ 基线数据已装载（${AFTER_CNT} 张表）"
-      BASELINE_DONE=1
-    else
-      echo "  ⚠️  基线装载后只有 ${AFTER_CNT:-0} 张表（期望 7 张）"
-      echo "     学生可稍后手动执行：bash scripts/loadBaseline.sh"
-    fi
-    ;;
-  *)
-    if [ "${TABLE_CNT}" -ge 7 ] 2>/dev/null; then
-      echo "  ✅ COURSE 库已有 ${TABLE_CNT} 张表，基线已就绪，跳过"
-      BASELINE_DONE=1
-    else
-      echo "  ⚠️  COURSE 库已有 ${TABLE_CNT} 张表（不是干净的库），跳过基线装载"
-      echo "     需要基线时执行：bash scripts/loadBaseline.sh（会先清空 COURSE 库）"
-    fi
-    ;;
-  esac
-else
-  echo "  ⚠️  找不到 ${BASELINE_SQL}，跳过基线装载"
-fi
-
 # --- 收尾 ---------------------------------------------------------------------
-if [ "${BASELINE_DONE:-0}" = "1" ]; then
-  echo "✅ 课程初始化完成"
-else
-  echo "⚠️  课程初始化完成，但基线未装载（判题不受影响，只是库里看不到表）"
-fi
+echo "✅ 课程初始化完成（TESTER / 授权 / DUMPDIR 就绪，基线数据未装载）"
+echo "   COURSE 库保持为空：L1 的 1.3~1.18 由学生自己建表插数据。"
+echo "   需要 7 张表 + 27 行原始数据时（例如进入 Level 2）："
+echo "     COURSE_LOAD_BASELINE=1 bash scripts/loadBaseline.sh"
 echo "======================================================================"
 echo ""
 # 显式成功：initdb 阶段返回非零会让容器停止启动，绝不能落到这里还返回非零

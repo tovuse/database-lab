@@ -1,11 +1,9 @@
 const assert = require('node:assert');
-const { resetSchema, replay, assertConstraint, expectError, exec, scalar, closeAll } = require('./utils');
+const { loadUpTo, assertConstraint, expectError, exec, scalar, closeAll } = require('./utils');
 
 describe('1.22 给「读者」的电话加 CHECK 约束（11 位数字）', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
-    await replay('sql/1.22.sql');
+    await loadUpTo('1.22');
   });
   after(async () => { await closeAll(); });
 

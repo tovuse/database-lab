@@ -1,12 +1,9 @@
 const assert = require('node:assert');
-const { resetSchema, replay, query, scalar, closeAll } = require('./utils');
+const { loadUpTo, query, scalar, closeAll } = require('./utils');
 
 describe('1.20 改：把分类 400 的类名改成「艺术设计」', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
-    await replay('answers/1.19.sql');   // 判题器先替你完成「增」
-    await replay('sql/1.20.sql');
+    await loadUpTo('1.20');
   });
   after(async () => { await closeAll(); });
 

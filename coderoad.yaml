@@ -165,12 +165,12 @@ levels:
             - sql/1.25.sql
           filter: '^1\.25 '
   - id: '2'
-    # Level 2 的查询题要用全部 7 张表 + 原始数据。
-    # 学生 Level 1 只建了一张表，所以进入本关时自动装载基线。
-    # loadBaseline.sh 是幂等的：重复执行会先清空再重建，不会报"表已存在"。
-    setup:
-      commands:
-        - ./scripts/loadBaseline.sh
+    # Level 2 的查询题要用全部 7 张表 + 27 行原始数据。
+    # 这些数据是学生自己在 Level 1 一步步建/插出来的（1.3~1.18）。
+    # 所以这里**绝对不能**再装载基线：
+    #   - 清空重建会把学生亲手做的成果抹掉；
+    #   - 而且这正好是"只写文件、没真操作数据库"那个问题的反面。
+    # 判题器每步用 loadUpTo() 在 COURSE 里重建到该步为止的状态，不依赖这里的 setup。
     steps:
       - id: '2.1'
         setup:
@@ -250,10 +250,8 @@ levels:
   - id: '3'
     # Level 3 用 PL/SQL 写存储过程和触发器，判题会重放基线 + 建过程 + 调用 + 断言数据变化。
     # 一个过程被拆成「骨架 → 补一段 → 再补一段」，每关只加一个动作。
-    # 依赖前面关卡建好的对象（如 3.11 依赖 3.10 的序列）时，测试里用 answers/ 下的标准答案补齐。
-    setup:
-      commands:
-        - ./scripts/loadBaseline.sh
+    # 前置对象（如 3.11 依赖 3.10 的序列）由 loadUpTo() 自动按步骤顺序重放答案补齐，
+    # 不在这里装载基线——那会清空学生 Level 1/2 做出来的库。
     steps:
       - id: '3.1'
         setup:
@@ -325,10 +323,8 @@ levels:
     # 4.1-4.8 是 Data Pump 命令（expdp/impdp），判题器解析 .sh 里的参数后自己执行；
     # 骨架关只做参数校验（命令本来就不完整），最后一步才真的跑。
     # 4.9 起回到 SQL，直接在 COURSE schema 里操作。
-    # level setup 重建基线，保证每关起点一致。
-    setup:
-      commands:
-        - ./scripts/loadBaseline.sh
+    # 起点一致性由每个测试自己的 before() 保证（loadCourseBaseline()），
+    # 不在这里装载基线——那会在进入本关时就把学生前几章的库清空。
     steps:
       - id: '4.1'
         setup:

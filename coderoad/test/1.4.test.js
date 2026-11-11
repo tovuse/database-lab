@@ -1,7 +1,6 @@
 const assert = require('node:assert');
 const {
-  resetSchema,
-  replay,
+  loadUpTo,
   query,
   conn,
   assertConstraint,
@@ -14,9 +13,8 @@ const {
  */
 describe('1.4 给「图书分类」加主键', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/1.3.sql'); // 前置关卡的标准答案，保证起始状态正确
-    await replay('sql/1.4.sql'); // 学生这一关写的
+    // 前置链自动重放 answers/1.3.sql，再执行学生这一关的 sql/1.4.sql
+    await loadUpTo('1.4');
   });
 
   after(async () => {

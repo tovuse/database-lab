@@ -1,13 +1,10 @@
 const assert = require('node:assert');
-const { resetSchema, replay, scalar, closeAll } = require('./utils');
+const { loadUpTo, scalar, closeAll } = require('./utils');
 
 describe('1.21 删：删掉分类 400', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
-    await replay('answers/1.19.sql');   // 判题器先替你完成「增」
-    await replay('answers/1.20.sql');   // 再完成「改」
-    await replay('sql/1.21.sql');
+    // 前置链自动完成「增」（answers/1.19.sql）和「改」（answers/1.20.sql）
+    await loadUpTo('1.21');
   });
   after(async () => { await closeAll(); });
 

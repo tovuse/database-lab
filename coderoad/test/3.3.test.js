@@ -1,7 +1,6 @@
 const assert = require('node:assert');
 const {
-  resetSchema,
-  replay,
+  loadUpTo,
   query,
   scalar,
   assertObject,
@@ -16,9 +15,8 @@ const {
  */
 describe('3.3 借书改图书状态并加异常处理', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
-    await replay('sql/3.3.sql');
+    await loadUpTo('3.3');
+    // 判题辅助：调一次过程，验证 INSERT + UPDATE 的副作用
     await callProcedure(`BEGIN 借书(100, '20051001', '1005050'); END;`);
   });
 

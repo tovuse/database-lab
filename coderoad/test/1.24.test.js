@@ -1,11 +1,9 @@
 const assert = require('node:assert');
-const { resetSchema, replay, assertConstraint, expectError, exec, scalar, closeAll } = require('./utils');
+const { loadUpTo, assertConstraint, expectError, exec, scalar, closeAll } = require('./utils');
 
 describe('1.24 给「图书」的借出状态加 CHECK 约束（只能是「是」或「否」）', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
-    await replay('sql/1.24.sql');
+    await loadUpTo('1.24');
   });
   after(async () => { await closeAll(); });
 

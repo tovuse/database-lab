@@ -1,7 +1,6 @@
 const assert = require('node:assert');
 const {
-  resetSchema,
-  replay,
+  loadUpTo,
   assertQueryEquals,
   runQueryFile,
   closeAll,
@@ -9,8 +8,7 @@ const {
 
 describe('2.2 高等教育出版社的书目，按单价降序', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
+    await loadUpTo('2.2');
   });
 
   after(async () => {

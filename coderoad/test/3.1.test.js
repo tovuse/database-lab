@@ -1,7 +1,6 @@
 const assert = require('node:assert');
 const {
-  resetSchema,
-  replay,
+  loadUpTo,
   scalar,
   assertObject,
   assertCompiled,
@@ -10,14 +9,12 @@ const {
 
 /**
  * 3.1 写出「借书」存储过程的骨架
- * 判题：重放基线 → 重放学生的 3.1 → 断言过程存在、能编译、三个参数齐全。
+ * 判题：loadUpTo 重放前置链 → 执行学生的 3.1 → 断言过程存在、能编译、三个参数齐全。
  * 这一步故意不检查过程做了什么：骨架阶段它就是个空壳。
  */
 describe('3.1 写借书过程骨架', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
-    await replay('sql/3.1.sql');
+    await loadUpTo('3.1');
   });
 
   after(async () => {

@@ -1,17 +1,12 @@
 const assert = require('node:assert');
 const {
-  resetSchema, replayAll, replay, query, assertTable, assertColumn,
+  loadUpTo, query, assertTable, assertColumn,
   assertConstraint, closeAll,
 } = require('./utils');
 
 describe('1.7 建「图书」表', () => {
   before(async () => {
-    await resetSchema();
-    await replayAll([
-      'answers/1.3.sql', 'answers/1.4.sql',
-      'answers/1.5.sql', 'answers/1.6.sql',
-    ]);
-    await replay('sql/1.7.sql');
+    await loadUpTo('1.7');
   });
   after(async () => { await closeAll(); });
 

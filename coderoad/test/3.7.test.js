@@ -1,6 +1,6 @@
 const assert = require('node:assert');
 const {
-  resetSchema,
+  loadUpTo,
   replay,
   scalar,
   assertObject,
@@ -18,9 +18,7 @@ const {
  */
 describe('3.7 预约的插入逻辑', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
-    await replay('sql/3.7.sql');
+    await loadUpTo('3.7');
   });
 
   after(async () => {

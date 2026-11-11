@@ -1,6 +1,6 @@
 const assert = require('node:assert');
 const {
-  resetSchema,
+  loadUpTo,
   replay,
   scalar,
   assertObject,
@@ -15,10 +15,9 @@ const {
  */
 describe('3.13 建图书丢失存储过程', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
+    await loadUpTo('3.13');
+    // 判题辅助：造一条「已借出、还没还」的记录，供图书丢失过程操作
     await replay('answers/3.8_seed.sql');
-    await replay('sql/3.13.sql');
     await callProcedure(`BEGIN 图书丢失('20051001', '1005050'); END;`);
   });
 

@@ -1,6 +1,6 @@
 const assert = require('node:assert');
 const {
-  replay,
+  loadUpTo,
   query,
   scalar,
   dropTestUsers,
@@ -30,7 +30,10 @@ describe('1.2 创建你自己的数据库用户', () => {
     });
 
     // 重放学生写的语句（CREATE USER + GRANT）
-    await replay('sql/1.2.sql');
+    // 1.2 的前置链是空的（1.1/1.2 都在 STEPS_WITHOUT_REPLAY 里），
+    // 所以 loadUpTo('1.2') 只清空 schema 再执行 sql/1.2.sql；
+    // 上面删残留用户的逻辑必须留在前面，否则 CREATE USER 会撞 ORA-01920。
+    await loadUpTo('1.2');
   });
 
   after(async () => {

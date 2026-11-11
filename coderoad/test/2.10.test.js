@@ -1,10 +1,9 @@
 const assert = require('node:assert');
-const { resetSchema, replay, assertQueryEquals, closeAll } = require('./utils');
+const { loadUpTo, assertQueryEquals, closeAll } = require('./utils');
 
 describe('2.10 查询每类图书的册数和平均单价', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
+    await loadUpTo('2.10');
   });
   after(async () => { await closeAll(); });
 

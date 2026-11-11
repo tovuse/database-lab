@@ -1,11 +1,9 @@
 const assert = require('node:assert');
-const { resetSchema, replay, expectError, exec, scalar, closeAll } = require('./utils');
+const { loadUpTo, expectError, exec, scalar, closeAll } = require('./utils');
 
 describe('1.25 把「借阅」的借书日期改成 NOT NULL', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
-    await replay('sql/1.25.sql');
+    await loadUpTo('1.25');
   });
   after(async () => { await closeAll(); });
 

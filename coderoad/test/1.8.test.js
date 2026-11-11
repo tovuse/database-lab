@@ -1,15 +1,14 @@
 const assert = require('node:assert');
-const { resetSchema, replay, exec, scalar, closeAll } = require('./utils');
+const { loadUpTo, replay, exec, scalar, closeAll } = require('./utils');
 
 describe('1.8 插入一本测试图书（验证默认值）', () => {
   before(async () => {
-    await resetSchema();
-    // 前置表结构逐个重放：图书 表必须用学生上一关自己写的文件，
-    // 这样「默认值」验的是学生建的表，不是判题器抄的标准答案
-    await replay('answers/1.3.sql');
-    await replay('answers/1.4.sql');
-    await replay('answers/1.6.sql');
-    await replay('sql/1.7.sql');
+    // 前置表结构用学生上一关自己写的 sql/1.7.sql 建：
+    // loadUpTo('1.7') 会重放 1.3~1.6 的标准答案，最后执行「学生文件」sql/1.7.sql，
+    // 这样「默认值」验的是学生建的表，不是判题器抄的标准答案。
+    // 注意不能写成 loadUpTo('1.8')：那样最后执行的是 sql/1.8.sql，而链里的
+    // answers/1.7.sql 会先把 图书 建成标准答案，学生 1.7 漏了 DEFAULT 也照样能过。
+    await loadUpTo('1.7');
 
     // 判题器自己准备外键需要的上级数据（图书分类 200 + 书目 7040195836），
     // 学生只需要写 INSERT INTO 图书 这一条

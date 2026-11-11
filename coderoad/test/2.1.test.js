@@ -1,7 +1,6 @@
 const assert = require('node:assert');
 const {
-  resetSchema,
-  replay,
+  loadUpTo,
   assertQueryEquals,
   closeAll,
 } = require('./utils');
@@ -12,8 +11,7 @@ const {
  */
 describe('2.1 查询红楼梦当前可借的图书', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
+    await loadUpTo('2.1');
   });
 
   after(async () => {

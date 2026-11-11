@@ -1,7 +1,6 @@
 const assert = require('node:assert');
 const {
-  resetSchema,
-  replay,
+  loadUpTo,
   scalar,
   assertObject,
   closeAll,
@@ -16,8 +15,7 @@ const {
  */
 describe('3.10 建序列', () => {
   before(async () => {
-    await resetSchema();
-    await replay('sql/3.10.sql');
+    await loadUpTo('3.10');
   });
 
   after(async () => {

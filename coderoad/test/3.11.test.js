@@ -1,7 +1,6 @@
 const assert = require('node:assert');
 const {
-  resetSchema,
-  replay,
+  loadUpTo,
   query,
   scalar,
   assertObject,
@@ -12,14 +11,11 @@ const {
 
 /**
  * 3.11 简化借书过程（2 参数，流水号走序列）
- * 判题：重放基线 + 序列 + 学生的过程 → 连调两次 → 断言流水号自动生成且递增
+ * 判题：前置链（含 answers/3.10.sql 的序列）+ 学生的过程 → 连调两次 → 断言流水号自动生成且递增
  */
 describe('3.11 建简化借书存储过程', () => {
   before(async () => {
-    await resetSchema();
-    await replay('answers/00.sql');
-    await replay('answers/3.10.sql');
-    await replay('sql/3.11.sql');
+    await loadUpTo('3.11');
   });
 
   after(async () => {

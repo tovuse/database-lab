@@ -1,7 +1,7 @@
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
-const { replay, scalar, closeAll, WORKSPACE } = require('./utils');
+const { loadUpTo, scalar, closeAll, WORKSPACE } = require('./utils');
 
 /**
  * 1.1 环境自检
@@ -40,7 +40,8 @@ describe('1.1 环境自检', () => {
   });
 
   it('执行后应真的返回一个用户名', async () => {
-    const { rows } = await replay('sql/1.1.sql');
+    // 1.1 是课程第一步，前置链为空：loadUpTo('1.1') 只执行 sql/1.1.sql
+    const { rows } = await loadUpTo('1.1');
     assert.ok(
       rows.length >= 1 && rows[0][0],
       `查询没有返回用户名 → 检查：是不是 SELECT 了别的列，或者忘了写 dual`
